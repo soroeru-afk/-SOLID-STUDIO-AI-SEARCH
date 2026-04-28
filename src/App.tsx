@@ -3,8 +3,7 @@ import { Zap, Upload, Download, RotateCcw, MessageSquare, TerminalSquare, Loader
 import { useState, useEffect, useRef } from 'react';
 import Markdown from 'react-markdown';
 
-// Initialize Gemini
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// We initialize Gemini dynamically in handleExecute to use the latest API Key
 
 // IndexedDB for File System API handle
 const GAI_CLOUD_DIR_KEY = 'GAI_CLOUD_DIR_HANDLE';
@@ -63,6 +62,7 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>('DARK');
   
   // Settings
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('solid_studio_api_key') || '');
   const [engine, setEngine] = useState<EngineType>('BALANCED');
   const [density, setDensity] = useState(64);
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('STANDARD');
@@ -98,10 +98,13 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Persist history
+  // Persist history and API Key
   useEffect(() => {
     localStorage.setItem('solid_studio_history', JSON.stringify(history));
   }, [history]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_api_key', apiKey);
+  }, [apiKey]);
 
   const loadHistory = (item: HistoryItem) => {
     setPrompt(item.keyword);
@@ -138,10 +141,18 @@ export default function App() {
   const handleExecute = async () => {
     if (!prompt.trim() && !attachedImage || isSearching) return;
     
+    // Use user-provided API key, fallback to env (for local dev)
+    const currentKey = apiKey || process.env.GEMINI_API_KEY;
+    if (!currentKey) {
+      setOutput('// FATAL_ERROR: API_KEY_MISSING\\n// 右側のパネル「00 API KEY」からGemini APIキーを設定してください。');
+      return;
+    }
+    
     setIsSearching(true);
     setOutput('');
     
     try {
+      const ai = new GoogleGenAI({ apiKey: currentKey });
       const systemInstruction = `
 # Role
 あなたは次世代型検索OS「SOLID STUDIO AI SEARCH」のコア解析エンジンです。
@@ -604,6 +615,17 @@ export default function App() {
         {/* RIGHT PANEL - hidden on small screens unless toggled, let's keep it visible on lg */}
         <aside className="w-[200px] border-l border-[var(--border-color)] bg-[var(--bg-color-panel)] shrink-0 transition-colors duration-300 hidden lg:flex flex-col z-20">
           <div className="p-3 flex-1 overflow-y-auto custom-scrollbar">
+             <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
+               <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[9px]">00 API KEY</div>
+               <input 
+                 type="password"
+                 value={apiKey}
+                 onChange={(e) => setApiKey(e.target.value)}
+                 placeholder="AIzaSy..."
+                 className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1 text-[var(--text-color-highlight)] text-[10px] outline-none focus:border-[var(--text-color-dim)]"
+               />
+             </div>
+
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
                <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[9px]">06 テーマ (THEMES)</div>
                <div className="grid grid-cols-2 gap-1.5">
