@@ -618,10 +618,14 @@ export default function App() {
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
                <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[9px]">00 API KEY</div>
                <input 
-                 type="password"
+                 type="text"
                  value={apiKey}
                  onChange={(e) => setApiKey(e.target.value)}
                  placeholder="AIzaSy..."
+                 autoComplete="off"
+                 spellCheck="false"
+                 data-1p-ignore
+                 style={{ WebkitTextSecurity: 'disc' }}
                  className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1 text-[var(--text-color-highlight)] text-[10px] outline-none focus:border-[var(--text-color-dim)]"
                />
              </div>
