@@ -1,0 +1,16 @@
+{
+  "name": "Solid Studio AI Search",
+  "short_name": "AI Search",
+  "description": "Solid Studio AI Search",
+  "start_url": "/-SOLID-STUDIO-AI-SEARCH/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "https://www.google.com/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
