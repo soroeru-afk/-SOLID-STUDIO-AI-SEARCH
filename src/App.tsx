@@ -82,7 +82,7 @@ export default function App() {
   // Search/Edit State
   const [prompt, setPrompt] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [output, setOutput] = useState('');
+  const [output, setOutput] = useState(() => localStorage.getItem('solid_studio_output') || '');
   const [editContent, setEditContent] = useState('');
   
   // Attached Image
@@ -187,13 +187,16 @@ export default function App() {
     ttsSpeak(fromHere);
   }, [output, ttsSpeak]);
 
-  // Persist history and API Key
+  // Persist history, API Key, and output
   useEffect(() => {
     localStorage.setItem('solid_studio_history', JSON.stringify(history));
   }, [history]);
   useEffect(() => {
     localStorage.setItem('solid_studio_api_key', apiKey);
   }, [apiKey]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_output', output);
+  }, [output]);
 
   // Persist TTS settings
   useEffect(() => { localStorage.setItem('tts_rate', String(ttsRate)); }, [ttsRate]);
