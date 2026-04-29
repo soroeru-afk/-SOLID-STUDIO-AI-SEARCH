@@ -72,10 +72,10 @@ export default function App() {
 
   // TTS State
   const [ttsVoices, setTtsVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [ttsVoiceURI, setTtsVoiceURI] = useState('');
-  const [ttsRate, setTtsRate] = useState(1.0);
-  const [ttsPitch, setTtsPitch] = useState(1.0);
-  const [ttsVolume, setTtsVolume] = useState(1.0);
+  const [ttsVoiceURI, setTtsVoiceURI] = useState(() => localStorage.getItem('tts_voice_uri') || '');
+  const [ttsRate, setTtsRate] = useState(() => Number(localStorage.getItem('tts_rate') || '1.0'));
+  const [ttsPitch, setTtsPitch] = useState(() => Number(localStorage.getItem('tts_pitch') || '1.0'));
+  const [ttsVolume, setTtsVolume] = useState(() => Number(localStorage.getItem('tts_volume') || '1.0'));
   const [ttsIsPlaying, setTtsIsPlaying] = useState(false);
   const ttsUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -180,6 +180,12 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('solid_studio_api_key', apiKey);
   }, [apiKey]);
+
+  // Persist TTS settings
+  useEffect(() => { localStorage.setItem('tts_rate', String(ttsRate)); }, [ttsRate]);
+  useEffect(() => { localStorage.setItem('tts_pitch', String(ttsPitch)); }, [ttsPitch]);
+  useEffect(() => { localStorage.setItem('tts_volume', String(ttsVolume)); }, [ttsVolume]);
+  useEffect(() => { localStorage.setItem('tts_voice_uri', ttsVoiceURI); }, [ttsVoiceURI]);
 
   const loadHistory = (item: HistoryItem) => {
     setPrompt(item.keyword);
