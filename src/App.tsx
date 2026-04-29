@@ -731,7 +731,11 @@ export default function App() {
                           className="markdown-body break-words normal-case"
                           style={{ fontSize: `${fontSizeRem}rem` }}
                           onClick={(e) => {
-                            // Click on any block-level element to read from that paragraph
+                            // Toggle: if playing → stop; if stopped → play from clicked paragraph
+                            if (ttsIsPlaying) {
+                              ttsStop();
+                              return;
+                            }
                             const target = e.target as HTMLElement;
                             const block = target.closest('p, h1, h2, h3, h4, li, blockquote, td') as HTMLElement | null;
                             if (block) {
