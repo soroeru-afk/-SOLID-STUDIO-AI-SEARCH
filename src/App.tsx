@@ -77,6 +77,16 @@ export default function App() {
   const [ttsPitch, setTtsPitch] = useState(() => Number(localStorage.getItem('tts_pitch') || '1.0'));
   const [ttsVolume, setTtsVolume] = useState(() => Number(localStorage.getItem('tts_volume') || '1.0'));
   const [ttsIsPlaying, setTtsIsPlaying] = useState(false);
+  const [ttsPanelOpen, setTtsPanelOpen] = useState(false);
+  const [ttsPanelPos, setTtsPanelPos] = useState<{x: number; y: number}>(() => {
+    try {
+      const saved = localStorage.getItem('tts_panel_pos');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    // Default: center of screen
+    return { x: Math.max(0, window.innerWidth / 2 - 120), y: Math.max(0, window.innerHeight / 2 - 160) };
+  });
+  const ttsDragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
   const ttsUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Search/Edit State
@@ -113,16 +123,42 @@ export default function App() {
       const voices = window.speechSynthesis.getVoices();
       if (voices.length > 0) {
         setTtsVoices(voices);
-        // Prefer Japanese voice
-        const jaVoice = voices.find(v => v.lang.startsWith('ja'));
-        if (jaVoice) setTtsVoiceURI(jaVoice.voiceURI);
-        else setTtsVoiceURI(voices[0]?.voiceURI || '');
+        // Restore saved voice; only fall back to Japanese default if saved voice not found
+        setTtsVoiceURI(prev => {
+          if (prev && voices.some(v => v.voiceURI === prev)) return prev;
+          const jaVoice = voices.find(v => v.lang.startsWith('ja'));
+          return jaVoice ? jaVoice.voiceURI : (voices[0]?.voiceURI || '');
+        });
       }
     };
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
     return () => { window.speechSynthesis.cancel(); };
   }, []);
+
+  // Draggable TTS panel handlers
+  const ttsDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    ttsDragRef.current = { startX: e.clientX, startY: e.clientY, originX: ttsPanelPos.x, originY: ttsPanelPos.y };
+    const onMove = (me: MouseEvent) => {
+      if (!ttsDragRef.current) return;
+      const nx = ttsDragRef.current.originX + me.clientX - ttsDragRef.current.startX;
+      const ny = ttsDragRef.current.originY + me.clientY - ttsDragRef.current.startY;
+      setTtsPanelPos({ x: Math.max(0, nx), y: Math.max(0, ny) });
+    };
+    const onUp = () => {
+      ttsDragRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [ttsPanelPos]);
+
+  // Persist TTS panel position
+  useEffect(() => {
+    localStorage.setItem('tts_panel_pos', JSON.stringify(ttsPanelPos));
+  }, [ttsPanelPos]);
 
   // Stop TTS when output changes
   useEffect(() => {
@@ -591,95 +627,31 @@ export default function App() {
               </div>
             </div>
 
-            {/* TTS PANEL */}
+            {/* TTS compact row in sidebar */}
             <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mt-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[9px] flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${ ttsIsPlaying ? 'bg-[var(--accent-color)] animate-pulse' : 'bg-[var(--border-color-highlight)]'}`}></span>
+              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[9px] flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ ttsIsPlaying ? 'bg-[var(--accent-color)] animate-pulse' : 'bg-[var(--border-color-highlight)]'}`}></span>
                 <span>09 音声 (TTS)</span>
               </div>
-
-              {/* Play / Stop buttons */}
-              <div className="flex gap-1.5 mb-3">
-                <button
-                  onClick={ttsPlayFromTop}
-                  disabled={!output || ttsIsPlaying}
-                  title="先頭から読み上げ"
-                  className="flex-1 py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[9px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                >
+              <div className="flex gap-1.5">
+                <button onClick={ttsPlayFromTop} disabled={!output || ttsIsPlaying}
+                  className="flex-1 py-1 px-1 font-bold border transition-colors rounded-sm text-[9px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
                   <span>▶</span><span>再生</span>
                 </button>
-                <button
-                  onClick={ttsStop}
-                  disabled={!ttsIsPlaying}
-                  title="停止"
-                  className="flex-1 py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[9px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                >
+                <button onClick={ttsStop} disabled={!ttsIsPlaying}
+                  className="flex-1 py-1 px-1 font-bold border transition-colors rounded-sm text-[9px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
                   <span>⏹</span><span>停止</span>
                 </button>
+                <button onClick={() => setTtsPanelOpen(v => !v)} title="詳細設定"
+                  className={`py-1 px-2 font-bold border transition-colors rounded-sm text-[9px] flex items-center justify-center ${
+                    ttsPanelOpen ? 'bg-[var(--border-color)] border-[var(--border-color-highlight)] text-[var(--text-color-highlight)]'
+                    : 'bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)]'}`}>
+                  ⚙️
+                </button>
               </div>
-
-              {/* Speed */}
-              <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
-                  <span>速度 (SPEED)</span>
-                  <span className="text-[var(--text-color-highlight)]">{ttsRate.toFixed(1)}x</span>
-                </div>
-                <input
-                  type="range" value={ttsRate}
-                  onChange={(e) => setTtsRate(Number(e.target.value))}
-                  min={0.5} max={4.0} step={0.1}
-                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
-                />
-              </div>
-
-              {/* Volume */}
-              <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
-                  <span>音量 (VOL)</span>
-                  <span className="text-[var(--text-color-highlight)]">{Math.round(ttsVolume * 100)}%</span>
-                </div>
-                <input
-                  type="range" value={ttsVolume}
-                  onChange={(e) => setTtsVolume(Number(e.target.value))}
-                  min={0.0} max={1.0} step={0.05}
-                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
-                />
-              </div>
-
-              {/* Pitch */}
-              <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
-                  <span>音程 (PITCH)</span>
-                  <span className="text-[var(--text-color-highlight)]">{ttsPitch.toFixed(1)}</span>
-                </div>
-                <input
-                  type="range" value={ttsPitch}
-                  onChange={(e) => setTtsPitch(Number(e.target.value))}
-                  min={0.5} max={2.0} step={0.1}
-                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
-                />
-              </div>
-
-              {/* Voice selector */}
-              <div>
-                <div className="text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">ボイス (VOICE)</div>
-                <select
-                  value={ttsVoiceURI}
-                  onChange={(e) => setTtsVoiceURI(e.target.value)}
-                  className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-1.5 py-1 text-[var(--text-color-highlight)] text-[9px] outline-none focus:border-[var(--text-color-dim)] normal-case tracking-normal cursor-pointer"
-                >
-                  {ttsVoices.map(v => (
-                    <option key={v.voiceURI} value={v.voiceURI}>
-                      {v.name} ({v.lang})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {output && (
                 <div className="mt-2 text-[8px] text-[var(--text-color-dim)] text-center leading-tight">
-                  ※段落をクリックで
-                  <br/>その箇所から読み上げ
+                  ※段落クリックでその箇所から読み上げ
                 </div>
               )}
             </div>
@@ -884,6 +856,90 @@ export default function App() {
          <input type="file" ref={importFileRef} accept=".json" className="hidden" onChange={handleImport} />
          <button onClick={handleSaveAs} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[10px] flex items-center justify-center"><span className="mt-1">{saveStatus}</span></button>
       </footer>
+      {/* FLOATING TTS PANEL */}
+      {ttsPanelOpen && (
+        <div
+          style={{ position: 'fixed', left: ttsPanelPos.x, top: ttsPanelPos.y, zIndex: 9999, width: 240 }}
+          className="bg-[var(--bg-color-panel)] border border-[var(--border-color-highlight)] rounded-sm shadow-2xl"
+        >
+          {/* Drag handle / title bar */}
+          <div
+            onMouseDown={ttsDragStart}
+            className="flex items-center justify-between px-3 py-2 bg-[var(--bg-color-card)] border-b border-[var(--border-color)] cursor-grab active:cursor-grabbing select-none rounded-t-sm"
+          >
+            <span className="text-[9px] font-bold text-[var(--text-color-dim)] flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${ ttsIsPlaying ? 'bg-[var(--accent-color)] animate-pulse' : 'bg-[var(--border-color-highlight)]'}`}></span>
+              09 音声コントロール (TTS)
+            </span>
+            <button onClick={() => setTtsPanelOpen(false)} className="text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] text-xs leading-none p-0.5">✕</button>
+          </div>
+
+          <div className="p-3 flex flex-col gap-2.5">
+            {/* Play / Stop */}
+            <div className="flex gap-1.5">
+              <button onClick={ttsPlayFromTop} disabled={!output || ttsIsPlaying}
+                className="flex-1 py-1.5 font-bold border transition-colors rounded-sm text-[9px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+                <span>▶</span><span>先頭から再生</span>
+              </button>
+              <button onClick={ttsStop} disabled={!ttsIsPlaying}
+                className="flex-1 py-1.5 font-bold border transition-colors rounded-sm text-[9px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+                <span>⏹</span><span>停止</span>
+              </button>
+            </div>
+
+            {/* Speed */}
+            <div>
+              <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
+                <span>速度 (SPEED)</span>
+                <span className="text-[var(--text-color-highlight)]">{ttsRate.toFixed(1)}x</span>
+              </div>
+              <input type="range" value={ttsRate} onChange={(e) => setTtsRate(Number(e.target.value))}
+                min={0.5} max={4.0} step={0.1}
+                className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" />
+            </div>
+
+            {/* Pitch */}
+            <div>
+              <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
+                <span>音程 (PITCH)</span>
+                <span className="text-[var(--text-color-highlight)]">{ttsPitch.toFixed(1)}</span>
+              </div>
+              <input type="range" value={ttsPitch} onChange={(e) => setTtsPitch(Number(e.target.value))}
+                min={0.5} max={2.0} step={0.1}
+                className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" />
+            </div>
+
+            {/* Volume */}
+            <div>
+              <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
+                <span>音量 (VOL)</span>
+                <span className="text-[var(--text-color-highlight)]">{Math.round(ttsVolume * 100)}%</span>
+              </div>
+              <input type="range" value={ttsVolume} onChange={(e) => setTtsVolume(Number(e.target.value))}
+                min={0.0} max={1.0} step={0.05}
+                className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" />
+            </div>
+
+            {/* Voice */}
+            <div>
+              <div className="text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">ボイス (VOICE)</div>
+              <select value={ttsVoiceURI} onChange={(e) => setTtsVoiceURI(e.target.value)}
+                className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1.5 text-[var(--text-color-highlight)] text-[9px] outline-none focus:border-[var(--text-color-dim)] normal-case tracking-normal cursor-pointer">
+                {ttsVoices.map(v => (
+                  <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
+                ))}
+              </select>
+            </div>
+
+            {output && (
+              <div className="text-[8px] text-[var(--text-color-dim)] text-center leading-tight border-t border-[var(--border-color)] pt-2">
+                ※段落をクリックでその箇所から読み上げ
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
