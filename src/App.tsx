@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { Zap, Upload, Download, RotateCcw, MessageSquare, TerminalSquare, Loader2, Maximize2, Minimize2, Image as ImageIcon, X } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Markdown from 'react-markdown';
 
 // We initialize Gemini dynamically in handleExecute to use the latest API Key
@@ -70,6 +70,14 @@ export default function App() {
   const [paperMode, setPaperMode] = useState(false); // Paper mode for text area
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+  // TTS State
+  const [ttsVoices, setTtsVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [ttsVoiceURI, setTtsVoiceURI] = useState('');
+  const [ttsRate, setTtsRate] = useState(1.0);
+  const [ttsPitch, setTtsPitch] = useState(1.0);
+  const [ttsIsPlaying, setTtsIsPlaying] = useState(false);
+  const ttsUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
   // Search/Edit State
   const [prompt, setPrompt] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -97,6 +105,71 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Load TTS voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        setTtsVoices(voices);
+        // Prefer Japanese voice
+        const jaVoice = voices.find(v => v.lang.startsWith('ja'));
+        if (jaVoice) setTtsVoiceURI(jaVoice.voiceURI);
+        else setTtsVoiceURI(voices[0]?.voiceURI || '');
+      }
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => { window.speechSynthesis.cancel(); };
+  }, []);
+
+  // Stop TTS when output changes
+  useEffect(() => {
+    window.speechSynthesis.cancel();
+    setTtsIsPlaying(false);
+  }, [output]);
+
+  const ttsSpeak = useCallback((text: string) => {
+    if (!text) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voice = ttsVoices.find(v => v.voiceURI === ttsVoiceURI);
+    if (voice) utterance.voice = voice;
+    utterance.rate = ttsRate;
+    utterance.pitch = ttsPitch;
+    utterance.onstart = () => setTtsIsPlaying(true);
+    utterance.onend = () => setTtsIsPlaying(false);
+    utterance.onerror = () => setTtsIsPlaying(false);
+    ttsUtteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  }, [ttsVoices, ttsVoiceURI, ttsRate, ttsPitch]);
+
+  const ttsStop = useCallback(() => {
+    window.speechSynthesis.cancel();
+    setTtsIsPlaying(false);
+  }, []);
+
+  const ttsPlayFromTop = useCallback(() => {
+    if (!output) return;
+    // Strip markdown symbols for cleaner reading
+    const plain = output
+      .replace(/#{1,6}\s+/g, '')
+      .replace(/[\*_`~>\[\]]/g, '')
+      .replace(/\|/g, ' ');
+    ttsSpeak(plain);
+  }, [output, ttsSpeak]);
+
+  const ttsPlayFromParagraph = useCallback((paragraphText: string) => {
+    if (!output || !paragraphText) return;
+    // Find the position of clicked paragraph in full text, read from there
+    const plain = output
+      .replace(/#{1,6}\s+/g, '')
+      .replace(/[\*_`~>\[\]]/g, '')
+      .replace(/\|/g, ' ');
+    const idx = plain.indexOf(paragraphText.substring(0, 30));
+    const fromHere = idx > -1 ? plain.substring(idx) : plain;
+    ttsSpeak(fromHere);
+  }, [output, ttsSpeak]);
 
   // Persist history and API Key
   useEffect(() => {
@@ -510,6 +583,85 @@ export default function App() {
               </div>
             </div>
 
+            {/* TTS PANEL */}
+            <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mt-4 transition-colors duration-300">
+              <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[9px] flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${ ttsIsPlaying ? 'bg-[var(--accent-color)] animate-pulse' : 'bg-[var(--border-color-highlight)]'}`}></span>
+                <span>09 音声 (TTS)</span>
+              </div>
+
+              {/* Play / Stop buttons */}
+              <div className="flex gap-1.5 mb-3">
+                <button
+                  onClick={ttsPlayFromTop}
+                  disabled={!output || ttsIsPlaying}
+                  title="先頭から読み上げ"
+                  className="flex-1 py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[9px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                >
+                  <span>▶</span><span>再生</span>
+                </button>
+                <button
+                  onClick={ttsStop}
+                  disabled={!ttsIsPlaying}
+                  title="停止"
+                  className="flex-1 py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[9px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                >
+                  <span>⏹</span><span>停止</span>
+                </button>
+              </div>
+
+              {/* Speed */}
+              <div className="mb-2">
+                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
+                  <span>速度 (SPEED)</span>
+                  <span className="text-[var(--text-color-highlight)]">{ttsRate.toFixed(1)}x</span>
+                </div>
+                <input
+                  type="range" value={ttsRate}
+                  onChange={(e) => setTtsRate(Number(e.target.value))}
+                  min={0.5} max={2.0} step={0.1}
+                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                />
+              </div>
+
+              {/* Pitch */}
+              <div className="mb-2">
+                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
+                  <span>音程 (PITCH)</span>
+                  <span className="text-[var(--text-color-highlight)]">{ttsPitch.toFixed(1)}</span>
+                </div>
+                <input
+                  type="range" value={ttsPitch}
+                  onChange={(e) => setTtsPitch(Number(e.target.value))}
+                  min={0.5} max={2.0} step={0.1}
+                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                />
+              </div>
+
+              {/* Voice selector */}
+              <div>
+                <div className="text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">ボイス (VOICE)</div>
+                <select
+                  value={ttsVoiceURI}
+                  onChange={(e) => setTtsVoiceURI(e.target.value)}
+                  className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-1.5 py-1 text-[var(--text-color-highlight)] text-[9px] outline-none focus:border-[var(--text-color-dim)] normal-case tracking-normal cursor-pointer"
+                >
+                  {ttsVoices.map(v => (
+                    <option key={v.voiceURI} value={v.voiceURI}>
+                      {v.name} ({v.lang})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {output && (
+                <div className="mt-2 text-[8px] text-[var(--text-color-dim)] text-center leading-tight">
+                  ※段落をクリックで
+                  <br/>その箇所から読み上げ
+                </div>
+              )}
+            </div>
+
           </div>
         </aside>
 
@@ -561,7 +713,19 @@ export default function App() {
                   {output && !isSearching && (
                     <div className="p-4 sm:p-8 max-w-6xl mx-auto min-h-full pb-20">
                       <div className={`border border-[var(--border-color)] bg-[var(--bg-color-card)] p-6 sm:p-10 shadow-2xl rounded-sm transition-colors duration-300 ${paperMode ? 'paper-mode' : ''}`}>
-                        <div className="markdown-body break-words normal-case" style={{ fontSize: `${fontSizeRem}rem` }}>
+                        <div
+                          className="markdown-body break-words normal-case"
+                          style={{ fontSize: `${fontSizeRem}rem` }}
+                          onClick={(e) => {
+                            // Click on any block-level element to read from that paragraph
+                            const target = e.target as HTMLElement;
+                            const block = target.closest('p, h1, h2, h3, h4, li, blockquote, td') as HTMLElement | null;
+                            if (block) {
+                              const text = block.innerText;
+                              if (text.trim()) ttsPlayFromParagraph(text.trim());
+                            }
+                          }}
+                        >
                           <Markdown>{output}</Markdown>
                         </div>
                       </div>
