@@ -75,6 +75,7 @@ export default function App() {
   const [ttsVoiceURI, setTtsVoiceURI] = useState('');
   const [ttsRate, setTtsRate] = useState(1.0);
   const [ttsPitch, setTtsPitch] = useState(1.0);
+  const [ttsVolume, setTtsVolume] = useState(1.0);
   const [ttsIsPlaying, setTtsIsPlaying] = useState(false);
   const ttsUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -137,12 +138,13 @@ export default function App() {
     if (voice) utterance.voice = voice;
     utterance.rate = ttsRate;
     utterance.pitch = ttsPitch;
+    utterance.volume = ttsVolume;
     utterance.onstart = () => setTtsIsPlaying(true);
     utterance.onend = () => setTtsIsPlaying(false);
     utterance.onerror = () => setTtsIsPlaying(false);
     ttsUtteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
-  }, [ttsVoices, ttsVoiceURI, ttsRate, ttsPitch]);
+  }, [ttsVoices, ttsVoiceURI, ttsRate, ttsPitch, ttsVolume]);
 
   const ttsStop = useCallback(() => {
     window.speechSynthesis.cancel();
@@ -619,7 +621,21 @@ export default function App() {
                 <input
                   type="range" value={ttsRate}
                   onChange={(e) => setTtsRate(Number(e.target.value))}
-                  min={0.5} max={2.0} step={0.1}
+                  min={0.5} max={4.0} step={0.1}
+                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                />
+              </div>
+
+              {/* Volume */}
+              <div className="mb-2">
+                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
+                  <span>音量 (VOL)</span>
+                  <span className="text-[var(--text-color-highlight)]">{Math.round(ttsVolume * 100)}%</span>
+                </div>
+                <input
+                  type="range" value={ttsVolume}
+                  onChange={(e) => setTtsVolume(Number(e.target.value))}
+                  min={0.0} max={1.0} step={0.05}
                   className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
                 />
               </div>
