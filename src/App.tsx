@@ -371,8 +371,12 @@ export default function App() {
 
     if (!output) return;
     content = output;
-    const title = prompt ? prompt.trim().substring(0, 30).replace(/[\\/:*?"<>|]/g, '_') : 'SEARCH';
-    filename = `${datePrefix}_「${title}」.txt`;
+    // Extract title from "# [ SUBJECT_SCAN ] : <title>" in the first line of output
+    const subjectMatch = output.match(/^#\s*\[\s*SUBJECT_SCAN\s*\]\s*:\s*(.+)/m);
+    const subjectTitle = subjectMatch
+      ? subjectMatch[1].trim().replace(/[\\/:*?"<>|]/g, '_').substring(0, 40)
+      : (prompt ? prompt.trim().substring(0, 30).replace(/[\\/:*?"<>|]/g, '_') : 'SEARCH');
+    filename = `${datePrefix}_「${subjectTitle}」.txt`;
 
     const fallbackDownload = () => {
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
