@@ -1,7 +1,7 @@
-const CACHE_NAME = 'solid-studio-ai-search-v3';
+const CACHE_NAME = 'solid-studio-ai-search-v4';
 const urlsToCache = [
-  '/-SOLID-STUDIO-AI-SEARCH/',
-  '/-SOLID-STUDIO-AI-SEARCH/index.html'
+  './',
+  './index.html'
 ];
 
 self.addEventListener('install', event => {

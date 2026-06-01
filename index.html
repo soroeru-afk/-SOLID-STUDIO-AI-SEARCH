@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SOLID STUDIO AI SEARCH</title>
-    <link rel="manifest" href="/-SOLID-STUDIO-AI-SEARCH/manifest.json">
+    <link rel="icon" type="image/png" href="./New Image 2026.png" />
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#000000">
   </head>
   <body>
@@ -13,7 +14,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/-SOLID-STUDIO-AI-SEARCH/sw.js').then(registration => {
+          navigator.serviceWorker.register('./sw.js').then(registration => {
             console.log('SW registered: ', registration);
           }).catch(registrationError => {
             console.log('SW registration failed: ', registrationError);

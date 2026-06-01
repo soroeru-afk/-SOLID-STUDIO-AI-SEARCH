@@ -522,8 +522,9 @@ export default function App() {
       {/* HEADER */}
       <header className="h-14 border-b border-[var(--border-color)] bg-[var(--bg-color-panel)] flex items-center justify-between px-4 shrink-0 transition-colors duration-300 relative z-20">
         <div className="flex items-center gap-4 sm:gap-8 w-full max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm text-[var(--text-color-highlight)] tracking-[0.2em] shrink-0">
-            <span className="text-[var(--text-color-dim)]">{'>_'}</span> SOLID STUDIO AI SEARCH
+          <div className="flex items-center gap-2.5 font-extrabold text-xs sm:text-sm text-[var(--text-color-highlight)] tracking-[0.2em] shrink-0">
+            <img src="./New Image 2026.png" alt="logo" className="h-6 w-6 object-cover rounded-sm shadow-md" />
+            SOLID STUDIO AI SEARCH
           </div>
           
           <div className="flex items-center gap-2 ml-auto flex-1 max-w-2xl relative">
