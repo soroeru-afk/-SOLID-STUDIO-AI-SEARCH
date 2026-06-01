@@ -58,17 +58,20 @@ interface ChatMessage {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('SEARCH_BUFFER');
-  const [theme, setTheme] = useState<Theme>('DARK');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('solid_studio_active_tab') || 'SEARCH_BUFFER');
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('solid_studio_theme') as Theme) || 'DARK');
   
   // Settings
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('solid_studio_api_key') || '');
-  const [engine, setEngine] = useState<EngineType>('BALANCED');
-  const [density, setDensity] = useState(64);
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>('STANDARD');
-  const [fontSizeRem, setFontSizeRem] = useState(0.85); // Slider driven font size
-  const [paperMode, setPaperMode] = useState(false); // Paper mode for text area
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [engine, setEngine] = useState<EngineType>(() => (localStorage.getItem('solid_studio_engine') as EngineType) || 'BALANCED');
+  const [density, setDensity] = useState(() => Number(localStorage.getItem('solid_studio_density') || '64'));
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>(() => (localStorage.getItem('solid_studio_output_format') as OutputFormat) || 'STANDARD');
+  const [fontSizeRem, setFontSizeRem] = useState(() => Number(localStorage.getItem('solid_studio_font_size') || '0.85')); // Slider driven font size
+  const [paperMode, setPaperMode] = useState(() => localStorage.getItem('solid_studio_paper_mode') === 'true'); // Paper mode for text area
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('solid_studio_sidebar_open');
+    return saved === null ? true : saved === 'true';
+  });
 
   // TTS State
   const [ttsVoices, setTtsVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -128,14 +131,53 @@ export default function App() {
 
   // Draggable TTS panel handlers - removed
 
-  // Center PWA window on load
+  // Restore window position and size on load (no forced centering)
   useEffect(() => {
     try {
-      const w = 1280, h = 800;
-      const left = Math.max(0, (window.screen.availWidth - w) / 2);
-      const top = Math.max(0, (window.screen.availHeight - h) / 2);
-      window.moveTo(left, top);
+      const savedX = localStorage.getItem('solid_studio_win_x');
+      const savedY = localStorage.getItem('solid_studio_win_y');
+      const savedW = localStorage.getItem('solid_studio_win_w');
+      const savedH = localStorage.getItem('solid_studio_win_h');
+
+      if (savedW && savedH) {
+        const w = parseInt(savedW, 10);
+        const h = parseInt(savedH, 10);
+        window.resizeTo(w, h);
+        
+        if (savedX && savedY) {
+          const x = parseInt(savedX, 10);
+          const y = parseInt(savedY, 10);
+          window.moveTo(x, y);
+        }
+      }
     } catch {}
+  }, []);
+
+  // Save window position and size when they change
+  useEffect(() => {
+    const saveWindowBounds = () => {
+      try {
+        const x = window.screenX !== undefined ? window.screenX : window.screenLeft;
+        const y = window.screenY !== undefined ? window.screenY : window.screenTop;
+        const w = window.outerWidth;
+        const h = window.outerHeight;
+
+        if (w > 0 && h > 0) {
+          localStorage.setItem('solid_studio_win_x', String(x));
+          localStorage.setItem('solid_studio_win_y', String(y));
+          localStorage.setItem('solid_studio_win_w', String(w));
+          localStorage.setItem('solid_studio_win_h', String(h));
+        }
+      } catch {}
+    };
+
+    window.addEventListener('resize', saveWindowBounds);
+    const intervalId = setInterval(saveWindowBounds, 1000);
+
+    return () => {
+      window.removeEventListener('resize', saveWindowBounds);
+      clearInterval(intervalId);
+    };
   }, []);
 
   // Stop TTS when output changes
@@ -203,6 +245,16 @@ export default function App() {
   useEffect(() => { localStorage.setItem('tts_pitch', String(ttsPitch)); }, [ttsPitch]);
   useEffect(() => { localStorage.setItem('tts_volume', String(ttsVolume)); }, [ttsVolume]);
   useEffect(() => { localStorage.setItem('tts_voice_uri', ttsVoiceURI); }, [ttsVoiceURI]);
+
+  // Persist additional settings
+  useEffect(() => { localStorage.setItem('solid_studio_active_tab', activeTab); }, [activeTab]);
+  useEffect(() => { localStorage.setItem('solid_studio_theme', theme); }, [theme]);
+  useEffect(() => { localStorage.setItem('solid_studio_engine', engine); }, [engine]);
+  useEffect(() => { localStorage.setItem('solid_studio_density', String(density)); }, [density]);
+  useEffect(() => { localStorage.setItem('solid_studio_output_format', outputFormat); }, [outputFormat]);
+  useEffect(() => { localStorage.setItem('solid_studio_font_size', String(fontSizeRem)); }, [fontSizeRem]);
+  useEffect(() => { localStorage.setItem('solid_studio_paper_mode', String(paperMode)); }, [paperMode]);
+  useEffect(() => { localStorage.setItem('solid_studio_sidebar_open', String(isSidebarOpen)); }, [isSidebarOpen]);
 
   const loadHistory = (item: HistoryItem) => {
     setPrompt(item.keyword);
