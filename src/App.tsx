@@ -524,7 +524,7 @@ export default function App() {
         <div className="flex items-center gap-4 sm:gap-8 w-full max-w-7xl mx-auto">
           <div className="flex items-center gap-2.5 font-extrabold text-xs sm:text-sm text-[var(--text-color-highlight)] tracking-[0.2em] shrink-0">
             <img src="./New Image 2026.png" alt="logo" className="h-6 w-6 object-cover rounded-sm shadow-md" />
-            SOLID STUDIO AI SEARCH
+            <span>SOLID STUDIO AI SEARCH</span>
           </div>
           
           <div className="flex items-center gap-2 ml-auto flex-1 max-w-2xl relative">
