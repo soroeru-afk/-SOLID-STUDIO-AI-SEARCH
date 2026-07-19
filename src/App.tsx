@@ -75,6 +75,43 @@ export default function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [language, setLanguage] = useState<'JP' | 'EN'>('JP');
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const editScrollContainerRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (isVertical) {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          container.scrollLeft -= e.deltaY; // rtl mode means scrolling left reduces scrollLeft usually, or increases it depending on browser. 
+          // Let's use `scrollBy` for standard behavior if possible, or just `-=` or `+=`.
+          // Standard for rtl vertical-rl: scrolling down (deltaY > 0) should move text to the left (scrollLeft becomes more negative in some browsers, or decreases).
+          // Actually, container.scrollBy({ left: -e.deltaY }) works well in most modern browsers.
+          container.scrollBy({ left: -e.deltaY });
+        }
+      }
+    };
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [isVertical]);
+
+  useEffect(() => {
+    const container = editScrollContainerRef.current;
+    if (!container) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (isVertical) {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          container.scrollBy({ left: -e.deltaY });
+        }
+      }
+    };
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [isVertical]);
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -820,6 +857,7 @@ export default function App() {
                   {output && !isSearching && (
                     <div className={`p-4 sm:p-8 w-full max-w-none mx-auto ${isVertical ? 'h-[calc(100vh-140px)]' : 'min-h-full pb-20'}`}>
                       <div 
+                        ref={scrollContainerRef}
                         className={`border border-[var(--border-color)] bg-[var(--bg-color-card)] p-6 sm:p-10 shadow-2xl rounded-sm transition-colors duration-300 w-full overflow-auto ${paperMode ? 'paper-mode' : ''}`}
                         style={{
                            height: isVertical ? '100%' : 'auto',
@@ -860,6 +898,7 @@ export default function App() {
               <div className={`absolute inset-0 flex flex-col transition-opacity duration-300 z-10 bg-[var(--bg-color-card)] overflow-hidden ${activeTab === 'EDIT_BUFFER' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                  <div className="flex flex-col h-full min-h-0">
                     <textarea 
+                      ref={editScrollContainerRef}
                       className="flex-1 w-full min-h-0 bg-transparent p-4 sm:p-8 pb-4 font-mono text-[var(--text-color-highlight)] outline-none resize-none custom-scrollbar"
                       style={{ 
                         fontSize: `${fontSizeRem}rem`,
