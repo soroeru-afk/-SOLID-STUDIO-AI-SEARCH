@@ -186,14 +186,47 @@ export default function App() {
     return () => { window.speechSynthesis.cancel(); };
   }, []);
 
-  // Center PWA window on load
+  // Restore or center PWA window on load, and track resizing/moving
   useEffect(() => {
     try {
       const w = 1280, h = 800;
-      const left = Math.max(0, (window.screen.availWidth - w) / 2);
-      const top = Math.max(0, (window.screen.availHeight - h) / 2);
-      window.moveTo(left, top);
+      // Get saved positions or default to screen center
+      const savedX = localStorage.getItem('solid_studio_win_x');
+      const savedY = localStorage.getItem('solid_studio_win_y');
+      const savedW = localStorage.getItem('solid_studio_win_w');
+      const savedH = localStorage.getItem('solid_studio_win_h');
+
+      const targetW = savedW ? Number(savedW) : w;
+      const targetH = savedH ? Number(savedH) : h;
+      
+      const defaultLeft = Math.max(0, (window.screen.availWidth - targetW) / 2);
+      const defaultTop = Math.max(0, (window.screen.availHeight - targetH) / 2);
+      
+      const targetX = savedX ? Number(savedX) : defaultLeft;
+      const targetY = savedY ? Number(savedY) : defaultTop;
+
+      window.resizeTo(targetW, targetH);
+      window.moveTo(targetX, targetY);
     } catch {}
+
+    const handleResizeOrMove = () => {
+      try {
+        localStorage.setItem('solid_studio_win_x', String(window.screenX));
+        localStorage.setItem('solid_studio_win_y', String(window.screenY));
+        localStorage.setItem('solid_studio_win_w', String(window.outerWidth));
+        localStorage.setItem('solid_studio_win_h', String(window.outerHeight));
+      } catch {}
+    };
+
+    window.addEventListener('resize', handleResizeOrMove);
+    // Note: window.onmove or polling is needed for window movement in standard browsers since there is no native 'move' event.
+    // We can also poll or set coordinates on click/interactions.
+    const interval = setInterval(handleResizeOrMove, 1000);
+
+    return () => {
+      window.removeEventListener('resize', handleResizeOrMove);
+      clearInterval(interval);
+    };
   }, []);
 
   // Stop TTS when output changes
