@@ -58,22 +58,22 @@ interface ChatMessage {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('SEARCH_BUFFER');
-  const [theme, setTheme] = useState<Theme>('DARK');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('solid_studio_active_tab') || 'SEARCH_BUFFER');
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('solid_studio_theme') as Theme) || 'DARK');
   
   // Settings
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('solid_studio_api_key') || '');
-  const [engine, setEngine] = useState<EngineType>('BALANCED');
-  const [density, setDensity] = useState(64);
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>('STANDARD');
-  const [fontSizeRem, setFontSizeRem] = useState(0.85); // Slider driven font size
-  const [lineHeight, setLineHeight] = useState(1.6);
-  const [textAlign, setTextAlign] = useState<'left'|'center'|'right'>('left');
-  const [paperMode, setPaperMode] = useState(false); // Paper mode for text area
-  const [isVertical, setIsVertical] = useState(false); // Vertical writing mode
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [engine, setEngine] = useState<EngineType>(() => (localStorage.getItem('solid_studio_engine') as EngineType) || 'BALANCED');
+  const [density, setDensity] = useState(() => Number(localStorage.getItem('solid_studio_density') || '64'));
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>(() => (localStorage.getItem('solid_studio_output_format') as OutputFormat) || 'STANDARD');
+  const [fontSizeRem, setFontSizeRem] = useState(() => Number(localStorage.getItem('solid_studio_font_size_rem') || '0.85')); // Slider driven font size
+  const [lineHeight, setLineHeight] = useState(() => Number(localStorage.getItem('solid_studio_line_height') || '1.6'));
+  const [textAlign, setTextAlign] = useState<'left'|'center'|'right'>(() => (localStorage.getItem('solid_studio_text_align') as 'left'|'center'|'right') || 'left');
+  const [paperMode, setPaperMode] = useState(() => localStorage.getItem('solid_studio_paper_mode') === 'true'); // Paper mode for text area
+  const [isVertical, setIsVertical] = useState(() => localStorage.getItem('solid_studio_is_vertical') === 'true'); // Vertical writing mode
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => localStorage.getItem('solid_studio_is_sidebar_open') !== 'false');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [language, setLanguage] = useState<'JP' | 'EN'>('JP');
+  const [language, setLanguage] = useState<'JP' | 'EN'>(() => (localStorage.getItem('solid_studio_language') as 'JP'|'EN') || 'JP');
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const editScrollContainerRef = useRef<HTMLTextAreaElement>(null);
@@ -255,6 +255,42 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('solid_studio_output', output);
   }, [output]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_theme', theme);
+  }, [theme]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_active_tab', activeTab);
+  }, [activeTab]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_engine', engine);
+  }, [engine]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_density', String(density));
+  }, [density]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_output_format', outputFormat);
+  }, [outputFormat]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_font_size_rem', String(fontSizeRem));
+  }, [fontSizeRem]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_line_height', String(lineHeight));
+  }, [lineHeight]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_text_align', textAlign);
+  }, [textAlign]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_paper_mode', String(paperMode));
+  }, [paperMode]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_is_vertical', String(isVertical));
+  }, [isVertical]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_is_sidebar_open', String(isSidebarOpen));
+  }, [isSidebarOpen]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_language', language);
+  }, [language]);
 
   // Persist TTS settings
   useEffect(() => { localStorage.setItem('tts_rate', String(ttsRate)); }, [ttsRate]);
