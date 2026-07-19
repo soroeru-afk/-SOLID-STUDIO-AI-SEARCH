@@ -1,9 +1,9 @@
 import { GoogleGenAI } from '@google/genai';
-import { Zap, Upload, Download, RotateCcw, MessageSquare, TerminalSquare, Loader2, Maximize2, Minimize2, Image as ImageIcon, X } from 'lucide-react';
+import { Zap, Upload, Download, RotateCcw, MessageSquare, TerminalSquare, Loader2, Expand, Shrink, Image as ImageIcon, X, AlignLeft, AlignCenter, AlignRight, Type, ArrowDownUp } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Markdown from 'react-markdown';
 
-// We initialize Gemini dynamically in handleExecute to use the latest API Key
+// Initialize Gemini dynamically in handleExecute
 
 // IndexedDB for File System API handle
 const GAI_CLOUD_DIR_KEY = 'GAI_CLOUD_DIR_HANDLE';
@@ -58,20 +58,40 @@ interface ChatMessage {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('solid_studio_active_tab') || 'SEARCH_BUFFER');
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('solid_studio_theme') as Theme) || 'DARK');
+  const [activeTab, setActiveTab] = useState('SEARCH_BUFFER');
+  const [theme, setTheme] = useState<Theme>('DARK');
   
   // Settings
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('solid_studio_api_key') || '');
-  const [engine, setEngine] = useState<EngineType>(() => (localStorage.getItem('solid_studio_engine') as EngineType) || 'BALANCED');
-  const [density, setDensity] = useState(() => Number(localStorage.getItem('solid_studio_density') || '64'));
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>(() => (localStorage.getItem('solid_studio_output_format') as OutputFormat) || 'STANDARD');
-  const [fontSizeRem, setFontSizeRem] = useState(() => Number(localStorage.getItem('solid_studio_font_size') || '0.85')); // Slider driven font size
-  const [paperMode, setPaperMode] = useState(() => localStorage.getItem('solid_studio_paper_mode') === 'true'); // Paper mode for text area
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    const saved = localStorage.getItem('solid_studio_sidebar_open');
-    return saved === null ? true : saved === 'true';
-  });
+  const [engine, setEngine] = useState<EngineType>('BALANCED');
+  const [density, setDensity] = useState(64);
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('STANDARD');
+  const [fontSizeRem, setFontSizeRem] = useState(0.85); // Slider driven font size
+  const [lineHeight, setLineHeight] = useState(1.6);
+  const [textAlign, setTextAlign] = useState<'left'|'center'|'right'>('left');
+  const [paperMode, setPaperMode] = useState(false); // Paper mode for text area
+  const [isVertical, setIsVertical] = useState(false); // Vertical writing mode
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [language, setLanguage] = useState<'JP' | 'EN'>('JP');
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(console.error);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(console.error);
+      }
+    }
+  };
 
   // TTS State
   const [ttsVoices, setTtsVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -129,55 +149,14 @@ export default function App() {
     return () => { window.speechSynthesis.cancel(); };
   }, []);
 
-  // Draggable TTS panel handlers - removed
-
-  // Restore window position and size on load (no forced centering)
+  // Center PWA window on load
   useEffect(() => {
     try {
-      const savedX = localStorage.getItem('solid_studio_win_x');
-      const savedY = localStorage.getItem('solid_studio_win_y');
-      const savedW = localStorage.getItem('solid_studio_win_w');
-      const savedH = localStorage.getItem('solid_studio_win_h');
-
-      if (savedW && savedH) {
-        const w = parseInt(savedW, 10);
-        const h = parseInt(savedH, 10);
-        window.resizeTo(w, h);
-        
-        if (savedX && savedY) {
-          const x = parseInt(savedX, 10);
-          const y = parseInt(savedY, 10);
-          window.moveTo(x, y);
-        }
-      }
+      const w = 1280, h = 800;
+      const left = Math.max(0, (window.screen.availWidth - w) / 2);
+      const top = Math.max(0, (window.screen.availHeight - h) / 2);
+      window.moveTo(left, top);
     } catch {}
-  }, []);
-
-  // Save window position and size when they change
-  useEffect(() => {
-    const saveWindowBounds = () => {
-      try {
-        const x = window.screenX !== undefined ? window.screenX : window.screenLeft;
-        const y = window.screenY !== undefined ? window.screenY : window.screenTop;
-        const w = window.outerWidth;
-        const h = window.outerHeight;
-
-        if (w > 0 && h > 0) {
-          localStorage.setItem('solid_studio_win_x', String(x));
-          localStorage.setItem('solid_studio_win_y', String(y));
-          localStorage.setItem('solid_studio_win_w', String(w));
-          localStorage.setItem('solid_studio_win_h', String(h));
-        }
-      } catch {}
-    };
-
-    window.addEventListener('resize', saveWindowBounds);
-    const intervalId = setInterval(saveWindowBounds, 1000);
-
-    return () => {
-      window.removeEventListener('resize', saveWindowBounds);
-      clearInterval(intervalId);
-    };
   }, []);
 
   // Stop TTS when output changes
@@ -246,16 +225,6 @@ export default function App() {
   useEffect(() => { localStorage.setItem('tts_volume', String(ttsVolume)); }, [ttsVolume]);
   useEffect(() => { localStorage.setItem('tts_voice_uri', ttsVoiceURI); }, [ttsVoiceURI]);
 
-  // Persist additional settings
-  useEffect(() => { localStorage.setItem('solid_studio_active_tab', activeTab); }, [activeTab]);
-  useEffect(() => { localStorage.setItem('solid_studio_theme', theme); }, [theme]);
-  useEffect(() => { localStorage.setItem('solid_studio_engine', engine); }, [engine]);
-  useEffect(() => { localStorage.setItem('solid_studio_density', String(density)); }, [density]);
-  useEffect(() => { localStorage.setItem('solid_studio_output_format', outputFormat); }, [outputFormat]);
-  useEffect(() => { localStorage.setItem('solid_studio_font_size', String(fontSizeRem)); }, [fontSizeRem]);
-  useEffect(() => { localStorage.setItem('solid_studio_paper_mode', String(paperMode)); }, [paperMode]);
-  useEffect(() => { localStorage.setItem('solid_studio_sidebar_open', String(isSidebarOpen)); }, [isSidebarOpen]);
-
   const loadHistory = (item: HistoryItem) => {
     setPrompt(item.keyword);
     setOutput(item.result);
@@ -311,6 +280,10 @@ export default function App() {
 # Parameters
 - ENGINE_PRESET: ${engine}
 - OUTPUT_FORMAT: ${outputFormat}
+- TARGET_LANGUAGE: ${language === 'EN' ? 'English' : 'Japanese'}
+
+# Directive
+全ての回答は、指定されたターゲット言語（${language === 'EN' ? 'English' : '日本語'}）で出力してください。
 
 # Visual Design Interface (UIルール)
 全ての回答は、以下の「洗練されたターミナル出力形式」で出力してください。
@@ -350,7 +323,7 @@ export default function App() {
       setAttachedImage(null); // use image and clear
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         contents: parts, // send parts array directly for single prompt
         config: {
           systemInstruction,
@@ -391,17 +364,17 @@ export default function App() {
     if (!textToCopy) return;
     navigator.clipboard.writeText(textToCopy);
     setCopyStatus('COPIED!');
-    setTimeout(() => setCopyStatus('結果をコピー (COPY)'), 2000);
+    setTimeout(() => setCopyStatus(language === 'EN' ? 'COPY' : '結果をコピー (COPY)'), 2000);
   };
 
-  const [saveStatus, setSaveStatus] = useState('保存 (SAVE AS)');
-  const [driveDirName, setDriveDirName] = useState('未設定');
+  const [saveStatus, setSaveStatus] = useState(language === 'EN' ? 'EXPORT' : 'エクスポート (EXPORT)');
+  const [driveDirName, setDriveDirName] = useState(language === 'EN' ? 'Not Set' : '未設定');
   const isIframe = window.self !== window.top;
 
   // Load handle name on mount
   useEffect(() => {
     if (isIframe) {
-      setDriveDirName('ブラウザのDLフォルダ (iframe制限)');
+      setDriveDirName(language === 'EN' ? 'Browser DL Folder (iframe limit)' : 'ブラウザのDLフォルダ (iframe制限)');
       return;
     }
     gaiIdbGet(GAI_CLOUD_DIR_KEY).then(handle => {
@@ -423,12 +396,17 @@ export default function App() {
 
     if (!output) return;
     content = output;
-    // Extract title from "# [ SUBJECT_SCAN ] : <title>" in the first line of output
-    const subjectMatch = output.match(/^#\s*\[\s*SUBJECT_SCAN\s*\]\s*:\s*(.+)/m);
-    const subjectTitle = subjectMatch
-      ? subjectMatch[1].trim().replace(/[\\/:*?"<>|]/g, '_').substring(0, 40)
-      : (prompt ? prompt.trim().substring(0, 30).replace(/[\\/:*?"<>|]/g, '_') : 'SEARCH');
-    filename = `${datePrefix}_「${subjectTitle}」.txt`;
+    
+    // Extract title from output: # [ SUBJECT_SCAN ] : Title
+    let title = prompt ? prompt.trim().substring(0, 30) : 'SEARCH';
+    const firstLine = output.split('\n')[0];
+    if (firstLine.includes('[ SUBJECT_SCAN ] : ')) {
+      const extractedTitle = firstLine.split('[ SUBJECT_SCAN ] : ')[1].trim();
+      if (extractedTitle) title = extractedTitle.substring(0, 50); // Limit length for filename
+    }
+
+    title = title.replace(/[\\/:*?"<>|]/g, '_');
+    filename = `${datePrefix}_${title}.txt`;
 
     const fallbackDownload = () => {
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -440,7 +418,7 @@ export default function App() {
       a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
       setSaveStatus('SAVED!');
-      setTimeout(() => setSaveStatus('保存 (SAVE AS)'), 2000);
+      setTimeout(() => setSaveStatus(language === 'EN' ? 'EXPORT' : 'エクスポート (EXPORT)'), 2000);
     };
 
     if (isIframe) {
@@ -453,7 +431,7 @@ export default function App() {
       
       if (!handle) {
         if (!('showDirectoryPicker' in window)) {
-          alert('お使いのブラウザはFile System Access APIに対応していません。');
+          alert(language === 'EN' ? 'Your browser does not support the File System Access API.' : 'お使いのブラウザはFile System Access APIに対応していません。');
           return;
         }
         handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
@@ -468,9 +446,9 @@ export default function App() {
       }
       
       if (perm !== 'granted') {
-        alert('フォルダへのアクセスが許可されませんでした。設定をリセットします。');
+        alert(language === 'EN' ? 'Folder access was not granted. Resetting configuration.' : 'フォルダへのアクセスが許可されませんでした。設定をリセットします。');
         await gaiIdbPut(GAI_CLOUD_DIR_KEY, null);
-        setDriveDirName('未設定');
+        setDriveDirName(language === 'EN' ? 'Not Set' : '未設定');
         return;
       }
 
@@ -480,19 +458,19 @@ export default function App() {
       await writable.close();
 
       setSaveStatus('SAVED!');
-      setTimeout(() => setSaveStatus('保存 (SAVE AS)'), 2000);
+      setTimeout(() => setSaveStatus(language === 'EN' ? 'EXPORT' : 'エクスポート (EXPORT)'), 2000);
 
     } catch (err: any) {
       console.error(err);
       if (err.name !== 'AbortError') {
-        alert('保存エラー: ' + err.message + '\n\n※AI Studioのプレビュー画面(iframe)では制限により保存できません。右上の「Open in new tab」アイコンから全画面で開いてお試しください。');
+        alert(language === 'EN' ? 'Save Error: ' + err.message + '\n\n* Saving is restricted in the AI Studio preview (iframe). Please try opening in a new tab using the icon in the top right.' : '保存エラー: ' + err.message + '\n\n※AI Studioのプレビュー画面(iframe)では制限により保存できません。右上の「Open in new tab」アイコンから全画面で開いてお試しください。');
       }
     }
   };
 
   const handleResetDrive = async () => {
     await gaiIdbPut(GAI_CLOUD_DIR_KEY, null);
-    setDriveDirName('未設定');
+    setDriveDirName(language === 'EN' ? 'Not Set' : '未設定');
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -506,10 +484,10 @@ export default function App() {
             if (data.history) setHistory(data.history);
             if (data.activeTab) setActiveTab(data.activeTab);
             setImportStatus('IMPORTED!');
-            setTimeout(() => setImportStatus('インポート (IMPORT)'), 2000);
+            setTimeout(() => setImportStatus(language === 'EN' ? 'IMPORT' : 'インポート (IMPORT)'), 2000);
         } catch (err) {
             setImportStatus('ERROR!');
-            setTimeout(() => setImportStatus('インポート (IMPORT)'), 2000);
+            setTimeout(() => setImportStatus(language === 'EN' ? 'IMPORT' : 'インポート (IMPORT)'), 2000);
         }
     };
     reader.readAsText(file);
@@ -517,14 +495,13 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen text-[10px] sm:text-xs tracking-widest uppercase selection:bg-[var(--border-color-highlight)] overflow-hidden">
+    <div className="flex flex-col h-screen text-[11px] sm:text-xs tracking-widest uppercase selection:bg-[var(--border-color-highlight)] overflow-hidden">
       
       {/* HEADER */}
-      <header className="h-14 border-b border-[var(--border-color)] bg-[var(--bg-color-panel)] flex items-center justify-between px-4 shrink-0 transition-colors duration-300 relative z-20">
-        <div className="flex items-center gap-4 sm:gap-8 w-full max-w-7xl mx-auto">
-          <div className="flex items-center gap-2.5 font-extrabold text-xs sm:text-sm text-[var(--text-color-highlight)] tracking-[0.2em] shrink-0">
-            <img src="./New Image 2026.png" alt="logo" className="h-6 w-6 object-cover rounded-sm shadow-md" />
-            <span>SOLID STUDIO AI SEARCH</span>
+      <header className="h-14 border-b border-[var(--border-color)] bg-[var(--bg-color-panel)] flex items-center justify-between pl-8 sm:pl-12 pr-6 sm:pr-8 shrink-0 transition-colors duration-300 relative z-20">
+        <div className="flex items-center gap-4 sm:gap-8 w-full">
+          <div className={`flex items-center gap-2 font-extrabold text-xs sm:text-sm tracking-[0.2em] shrink-0 ${theme === 'LIGHT' ? 'text-black' : 'text-white'}`}>
+            <span className={theme === 'LIGHT' ? 'text-black/50' : 'text-white/50'}>{'>_'}</span> SOLID STUDIO AI SEARCH
           </div>
           
           <div className="flex items-center gap-2 ml-auto flex-1 max-w-2xl relative">
@@ -535,7 +512,7 @@ export default function App() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={"検索キーワード / 質問を入力..."}
+                placeholder={language === 'EN' ? "Enter search keyword / question..." : "検索キーワード / 質問を入力..."}
                 className="bg-transparent outline-none w-full text-[var(--text-color-highlight)] placeholder:text-[var(--text-color-dim)] text-xs sm:text-sm font-sans normal-case"
                 disabled={isSearching}
               />
@@ -552,17 +529,40 @@ export default function App() {
             <button 
               onClick={handleExecute}
               disabled={isSearching}
-              className="bg-[var(--bg-color-base)] border border-[var(--border-color-highlight)] hover:bg-[var(--border-color)] text-[var(--text-color-highlight)] px-4 py-1.5 transition-colors disabled:opacity-50 shrink-0 font-bold"
+              className="bg-[var(--bg-color-base)] border border-[var(--border-color-highlight)] hover:bg-[var(--border-color)] text-[var(--text-color-highlight)] hover:text-[var(--active-text-color,var(--text-color-highlight))] px-4 py-1.5 transition-colors disabled:opacity-50 shrink-0 font-bold"
             >
-              実行
+              {language === 'EN' ? 'RUN' : '実行'}
             </button>
             <button 
               onClick={() => imageInputRef.current?.click()}
-              className="hidden sm:flex items-center gap-2 bg-[var(--bg-color-base)] border border-[var(--border-color)] hover:bg-[var(--border-color-highlight)] text-[var(--text-color-base)] px-4 py-1.5 transition-colors shrink-0"
+              className="hidden sm:flex items-center gap-2 bg-[var(--bg-color-base)] border border-[var(--border-color)] hover:bg-[var(--border-color-highlight)] text-[var(--text-color-base)] px-4 py-1.5 transition-colors shrink-0 rounded-sm"
             >
-              <Upload size={12} /> 画像読込
+              <Upload size={12} /> {language === 'EN' ? 'IMAGE' : '画像読込'}
             </button>
             <input type="file" ref={imageInputRef} accept="image/*" className="hidden" onChange={handleImageUpload} />
+
+            <div className="hidden sm:flex border border-[var(--border-color)] bg-[var(--bg-color-base)] p-0.5 rounded-sm h-[30px] text-[10px] font-bold ml-2 shrink-0">
+              <button 
+                onClick={() => setLanguage('EN')}
+                className={`px-3 h-full rounded-sm flex items-center justify-center transition-colors ${language === 'EN' ? 'bg-[var(--bg-color-panel)] text-[var(--text-color-highlight)]' : 'text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)]'}`}
+              >
+                EN
+              </button>
+              <button 
+                onClick={() => setLanguage('JP')}
+                className={`px-3 h-full rounded-sm flex items-center justify-center transition-colors ${language === 'JP' ? 'bg-[var(--bg-color-panel)] text-[var(--text-color-highlight)]' : 'text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)]'}`}
+              >
+                JP
+              </button>
+            </div>
+
+            <button 
+              onClick={toggleFullscreen}
+              className="hidden sm:flex items-center justify-center border border-[var(--border-color)] bg-[var(--bg-color-base)] hover:bg-[var(--bg-color-panel)] text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] w-[30px] h-[30px] rounded-sm transition-colors ml-1 shrink-0"
+              title={language === 'EN' ? 'FULLSCREEN' : 'フルスクリーン (FULLSCREEN)'}
+            >
+              {isFullscreen ? <Shrink size={14} /> : <Expand size={14} />}
+            </button>
           </div>
         </div>
 
@@ -570,10 +570,10 @@ export default function App() {
           <div className="flex items-center gap-2">
             <div className={`w-1.5 h-1.5 rounded-full ${isSearching ? 'bg-yellow-500 animate-pulse' : 'bg-[var(--accent-color)] animate-pulse'}`}></div>
             <span className={isSearching ? 'text-yellow-500' : 'text-[var(--accent-color)]'}>
-              {isSearching ? '処理中...' : 'STABLE'}
+              {isSearching ? (language === 'EN' ? 'PROCESSING...' : '処理中...') : 'STABLE'}
             </span>
           </div>
-          <div className="text-[8px] text-[var(--text-color-dim)]">VER_5.2.0_JP</div>
+          <div className="text-[8px] text-[var(--text-color-dim)]">VER_5.2.0_{language}</div>
         </div>
       </header>
 
@@ -581,13 +581,13 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden relative">
         
         {/* LEFT PANEL */}
-        <aside className={`${isSidebarOpen ? 'w-[200px] border-r' : 'w-0 overflow-hidden border-none'} border-[var(--border-color)] bg-[var(--bg-color-panel)] flex flex-col shrink-0 transition-all duration-300 md:relative absolute z-10 h-full`}>
-          <div className="p-3 flex-1 overflow-y-auto w-[200px] custom-scrollbar">
+        <aside className={`${isSidebarOpen ? 'w-[260px] border-r' : 'w-0 overflow-hidden border-none'} border-[var(--border-color)] bg-[var(--bg-color-panel)] flex flex-col shrink-0 transition-all duration-300 md:relative absolute z-10 h-full`}>
+          <div className="p-3 flex-1 overflow-y-auto w-[260px] custom-scrollbar">
             
             <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
               <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-2 text-[9px]">
-                  <span>01 密度 (DENSITY)</span>
+                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">
+                  <span>{language === 'EN' ? '01 DENSITY' : '01 密度 (DENSITY)'}</span>
                   <span className="text-[var(--text-color-highlight)]">{density}</span>
                 </div>
                 <input 
@@ -602,16 +602,16 @@ export default function App() {
             </div>
 
             <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mb-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[9px]">02 エンジン (ENGINE)</div>
+              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">{language === 'EN' ? '02 ENGINE' : '02 エンジン (ENGINE)'}</div>
               <div className="flex flex-col gap-1">
                 {(['BALANCED', 'DEEP_RESEARCH', 'QUICK'] as EngineType[]).map((e) => (
                   <button 
                     key={e}
                     onClick={() => setEngine(e)}
-                    className={`py-1 px-2 text-left font-bold border transition-colors rounded-sm text-[9px] ${
+                    className={`py-1 px-2 text-left font-bold border transition-colors rounded-sm text-[11px] ${
                       engine === e 
-                        ? 'bg-[var(--border-color)] border-[var(--border-color-highlight)] text-[var(--text-color-highlight)]' 
-                        : 'bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-base)]'
+                        ? 'bg-[var(--border-color)] border-[var(--border-color-highlight)] text-[var(--active-text-color,var(--text-color-highlight))]' 
+                        : 'bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-base))]'
                     }`}
                   >
                     {e}
@@ -621,16 +621,16 @@ export default function App() {
             </div>
 
             <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mb-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[9px]">03 形式 (FORMAT)</div>
+              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">{language === 'EN' ? '03 FORMAT' : '03 形式 (FORMAT)'}</div>
               <div className="flex flex-col gap-1">
                 {(['STANDARD', 'RAW_JSON', 'MINIMAL'] as OutputFormat[]).map((f) => (
                   <button 
                     key={f}
                     onClick={() => setOutputFormat(f)}
-                    className={`py-1 px-2 text-left font-bold border transition-colors rounded-sm text-[9px] ${
+                    className={`py-1 px-2 text-left font-bold border transition-colors rounded-sm text-[11px] ${
                       outputFormat === f 
-                        ? 'bg-[var(--border-color)] border-[var(--border-color-highlight)] text-[var(--text-color-highlight)]' 
-                        : 'bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-base)]'
+                        ? 'bg-[var(--border-color)] border-[var(--border-color-highlight)] text-[var(--active-text-color,var(--text-color-highlight))]' 
+                        : 'bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-base))]'
                     }`}
                   >
                     {f}
@@ -638,56 +638,30 @@ export default function App() {
                 ))}
               </div>
             </div>
-            
-            <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
-              <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-2 text-[9px]">
-                  <span>04 文字 (SIZE)</span>
-                  <span className="text-[var(--text-color-highlight)]">{fontSizeRem.toFixed(2)}rem</span>
-                </div>
-                <input 
-                  type="range" 
-                  value={fontSizeRem}
-                  onChange={(e) => setFontSizeRem(Number(e.target.value))}
-                  min={0.6} 
-                  max={2.0}
-                  step={0.05} 
-                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" 
-                />
-              </div>
-            </div>
-
-            <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mt-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[9px]">05 背景 (PAPER)</div>
-              <div className="flex gap-1.5">
-                 <button onClick={() => setPaperMode(false)} className={`flex-1 py-1 px-2 text-center font-bold border transition-colors rounded-sm text-[9px] ${!paperMode ? 'bg-[var(--border-color)] border-[var(--border-color-highlight)] text-[var(--text-color-highlight)]' : 'bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)]'}`}>DARK</button>
-                 <button onClick={() => setPaperMode(true)} className={`flex-1 py-1 px-2 text-center font-bold border transition-colors rounded-sm text-[9px] ${paperMode ? 'bg-[var(--border-color)] border-[var(--border-color-highlight)] text-[var(--text-color-highlight)]' : 'bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)]'}`}>PAPER</button>
-              </div>
-            </div>
 
             {/* TTS PANEL - full controls in sidebar */}
             <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mt-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[9px] flex items-center gap-1.5">
+              <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px] flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${ ttsIsPlaying ? 'bg-[var(--accent-color)] animate-pulse' : 'bg-[var(--border-color-highlight)]'}`}></span>
-                <span>09 音声 (TTS)</span>
+                <span>{language === 'EN' ? '09 VOICE (TTS)' : '09 音声 (TTS)'}</span>
               </div>
 
               {/* Play / Stop */}
               <div className="flex gap-1.5 mb-3">
-                <button onClick={ttsPlayFromTop} disabled={!output || ttsIsPlaying} title="先頭から読み上げ"
-                  className="flex-1 py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[9px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
-                  <span>▶</span><span>再生</span>
+                <button onClick={ttsPlayFromTop} disabled={!output || ttsIsPlaying} title={language === "EN" ? "Read from top" : "先頭から読み上げ"}
+                  className="flex-1 py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[11px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-highlight))] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+                  <span>▶</span><span>{language === 'EN' ? 'PLAY' : '再生'}</span>
                 </button>
-                <button onClick={ttsStop} disabled={!ttsIsPlaying} title="停止"
-                  className="flex-1 py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[9px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
-                  <span>⏹</span><span>停止</span>
+                <button onClick={ttsStop} disabled={!ttsIsPlaying} title={language === "EN" ? "Stop" : "停止"}
+                  className="flex-1 py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[11px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-highlight))] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+                  <span>⏹</span><span>{language === 'EN' ? 'STOP' : '停止'}</span>
                 </button>
               </div>
 
               {/* Speed */}
               <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
-                  <span>速度 (SPEED)</span>
+                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">
+                  <span>{language === 'EN' ? 'SPEED' : '速度 (SPEED)'}</span>
                   <span className="text-[var(--text-color-highlight)]">{ttsRate.toFixed(1)}x</span>
                 </div>
                 <input type="range" value={ttsRate} onChange={(e) => setTtsRate(Number(e.target.value))}
@@ -697,8 +671,8 @@ export default function App() {
 
               {/* Volume */}
               <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
-                  <span>音量 (VOL)</span>
+                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">
+                  <span>{language === 'EN' ? 'VOLUME' : '音量 (VOL)'}</span>
                   <span className="text-[var(--text-color-highlight)]">{Math.round(ttsVolume * 100)}%</span>
                 </div>
                 <input type="range" value={ttsVolume} onChange={(e) => setTtsVolume(Number(e.target.value))}
@@ -708,8 +682,8 @@ export default function App() {
 
               {/* Pitch */}
               <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">
-                  <span>音程 (PITCH)</span>
+                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">
+                  <span>{language === 'EN' ? 'PITCH' : '音程 (PITCH)'}</span>
                   <span className="text-[var(--text-color-highlight)]">{ttsPitch.toFixed(1)}</span>
                 </div>
                 <input type="range" value={ttsPitch} onChange={(e) => setTtsPitch(Number(e.target.value))}
@@ -719,9 +693,9 @@ export default function App() {
 
               {/* Voice */}
               <div>
-                <div className="text-[var(--text-color-dim)] font-bold mb-1 text-[9px]">ボイス (VOICE)</div>
+                <div className="text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">{language === 'EN' ? 'VOICE' : 'ボイス (VOICE)'}</div>
                 <select value={ttsVoiceURI} onChange={(e) => setTtsVoiceURI(e.target.value)}
-                  className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-1.5 py-1 text-[var(--text-color-highlight)] text-[9px] outline-none focus:border-[var(--text-color-dim)] normal-case tracking-normal cursor-pointer">
+                  className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-1.5 py-1 text-[var(--text-color-highlight)] text-[11px] outline-none focus:border-[var(--text-color-dim)] normal-case tracking-normal cursor-pointer">
                   {ttsVoices.map(v => (
                     <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
                   ))}
@@ -730,8 +704,8 @@ export default function App() {
 
               {output && (
                 <div className="mt-2 text-[8px] text-[var(--text-color-dim)] text-center leading-tight">
-                  ※段落をクリックで
-                  <br/>その箇所から読み上げ
+                  {language === 'EN' ? 'Click paragraph to play' : '※段落をクリックで'}
+                  <br/>{language === 'EN' ? '' : 'その箇所から読み上げ'}
                 </div>
               )}
             </div>
@@ -748,20 +722,79 @@ export default function App() {
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                     className="p-1.5 text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] transition-colors rounded bg-[var(--bg-color-base)] border border-[var(--border-color)] mr-2 md:hidden h-7 flex items-center justify-center"
                  >
-                    {isSidebarOpen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                    {isSidebarOpen ? <Shrink size={14} /> : <Expand size={14} />}
                  </button>
                  <button 
                     onClick={() => setActiveTab('SEARCH_BUFFER')}
                     className={`flex items-center justify-center gap-2 h-full border-b-2 px-2 sm:px-4 transition-colors ${activeTab === 'SEARCH_BUFFER' ? 'border-[var(--text-color-highlight)] text-[var(--text-color-highlight)] bg-[var(--bg-color-card)]' : 'border-transparent text-[var(--text-color-dim)] hover:text-[var(--text-color-base)]'}`}
                   >
-                    <TerminalSquare size={14} /> <span className="mt-1">検索バッファ <span className="hidden sm:inline">(SEARCH)</span></span>
+                    <TerminalSquare size={14} /> <span className="mt-1">{language === 'EN' ? 'SEARCH BUFFER' : '検索バッファ'} <span className="hidden sm:inline">{language === 'EN' ? '' : '(SEARCH)'}</span></span>
                  </button>
                  <button 
                     onClick={() => { setEditContent(output); setActiveTab('EDIT_BUFFER'); }}
                     className={`flex items-center justify-center gap-2 h-full border-b-2 px-2 sm:px-4 transition-colors ${activeTab === 'EDIT_BUFFER' ? 'border-[var(--text-color-highlight)] text-[var(--text-color-highlight)] bg-[var(--bg-color-card)]' : 'border-transparent text-[var(--text-color-dim)] hover:text-[var(--text-color-base)]'}`}
                   >
-                    <MessageSquare size={14} /> <span className="mt-1">検索内容の編集 <span className="hidden sm:inline">(EDIT)</span></span>
+                    <MessageSquare size={14} /> <span className="mt-1">{language === 'EN' ? 'EDIT CONTENT' : '検索内容の編集'} <span className="hidden sm:inline">{language === 'EN' ? '' : '(EDIT)'}</span></span>
                  </button>
+              </div>
+
+              {/* TEXT FORMATTING TOOLBAR */}
+              <div className="flex items-center gap-3 shrink-0 h-full text-[var(--text-color-dim)] pr-2 hidden md:flex">
+                 
+                 {/* Display Modes */}
+                 <div className="flex items-center gap-1 border border-[var(--border-color)] bg-[var(--bg-color-base)] p-0.5 rounded-sm text-[11px] font-bold">
+                    <button onClick={() => setPaperMode(!paperMode)} className={`px-2 py-1 rounded-sm transition-colors ${paperMode ? 'bg-[var(--border-color)] text-[var(--active-text-color,var(--text-color-highlight))]' : 'hover:bg-[var(--bg-color-card)]'}`} title={language === "EN" ? "Toggle Paper Mode" : "ペーパーモード切替"}>
+                       PAPER
+                    </button>
+                    <div className="w-px h-3 bg-[var(--border-color)] mx-1"></div>
+                    <button onClick={() => setIsVertical(false)} className={`px-2 py-1 rounded-sm transition-colors ${!isVertical ? 'bg-[var(--border-color)] text-[var(--active-text-color,var(--text-color-highlight))]' : 'hover:bg-[var(--bg-color-card)]'}`} title={language === "EN" ? "Horizontal" : "横組"}>
+                       {language === 'EN' ? 'HORZ' : '横組'}
+                    </button>
+                    <button onClick={() => setIsVertical(true)} className={`px-2 py-1 rounded-sm transition-colors ${isVertical ? 'bg-[var(--border-color)] text-[var(--active-text-color,var(--text-color-highlight))]' : 'hover:bg-[var(--bg-color-card)]'}`} title={language === "EN" ? "Vertical" : "縦組"}>
+                       {language === 'EN' ? 'VERT' : '縦組'}
+                    </button>
+                 </div>
+
+                 {/* Text Align */}
+                 <div className="flex items-center gap-1 border border-[var(--border-color)] bg-[var(--bg-color-base)] p-0.5 rounded-sm">
+                    <button onClick={() => setTextAlign('left')} className={`p-1 rounded-sm transition-colors ${textAlign === 'left' ? 'bg-[var(--border-color)] text-[var(--active-text-color,var(--text-color-highlight))]' : 'hover:bg-[var(--bg-color-card)]'}`} title={language === "EN" ? "Align Left" : "左揃え"}>
+                       <AlignLeft size={12} />
+                    </button>
+                    <button onClick={() => setTextAlign('center')} className={`p-1 rounded-sm transition-colors ${textAlign === 'center' ? 'bg-[var(--border-color)] text-[var(--active-text-color,var(--text-color-highlight))]' : 'hover:bg-[var(--bg-color-card)]'}`} title={language === "EN" ? "Align Center" : "中央揃え"}>
+                       <AlignCenter size={12} />
+                    </button>
+                    <button onClick={() => setTextAlign('right')} className={`p-1 rounded-sm transition-colors ${textAlign === 'right' ? 'bg-[var(--border-color)] text-[var(--active-text-color,var(--text-color-highlight))]' : 'hover:bg-[var(--bg-color-card)]'}`} title={language === "EN" ? "Align Right" : "右揃え"}>
+                       <AlignRight size={12} />
+                    </button>
+                 </div>
+
+                 {/* Line Height */}
+                 <div className="flex items-center gap-1.5 border border-[var(--border-color)] bg-[var(--bg-color-base)] px-2 py-0.5 rounded-sm" title={language === "EN" ? "Line Height" : "行間"}>
+                    <ArrowDownUp size={12} className="shrink-0" />
+                    <input 
+                      type="range" 
+                      value={lineHeight}
+                      onChange={(e) => setLineHeight(Number(e.target.value))}
+                      min={1.0} 
+                      max={2.5}
+                      step={0.1} 
+                      className="w-16 h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" 
+                    />
+                 </div>
+
+                 {/* Font Size */}
+                 <div className="flex items-center gap-1.5 border border-[var(--border-color)] bg-[var(--bg-color-base)] px-2 py-0.5 rounded-sm" title={language === 'EN' ? 'Font Size' : '文字サイズ'}>
+                    <Type size={12} className="shrink-0" />
+                    <input 
+                      type="range" 
+                      value={fontSizeRem}
+                      onChange={(e) => setFontSizeRem(Number(e.target.value))}
+                      min={0.6} 
+                      max={2.0}
+                      step={0.05} 
+                      className="w-16 h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" 
+                    />
+                 </div>
               </div>
            </div>
 
@@ -773,23 +806,35 @@ export default function App() {
                   {!output && !isSearching && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--border-color-highlight)] p-4 text-center">
                        <TerminalSquare size={48} className="mb-4 opacity-50" />
-                       <span className="font-bold tracking-[0.3em] italic">検索を実行してください<br/><span className="text-[8px] opacity-70">AWAITING_INPUT</span></span>
+                       <span className="font-bold tracking-[0.3em] italic">{language === 'EN' ? 'Please run a search' : '検索を実行してください'}<br/><span className="text-[8px] opacity-70">AWAITING_INPUT</span></span>
                     </div>
                   )}
 
                   {isSearching && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--accent-color)] bg-[var(--bg-color-base)]/80 backdrop-blur-sm z-10">
                        <Loader2 size={48} className="mb-4 animate-spin opacity-80" />
-                       <span className="font-bold tracking-[0.3em] animate-pulse">情報を解析中...<br/><span className="text-[8px] opacity-70">QUERYING_GLOBAL_NETWORK</span></span>
+                       <span className="font-bold tracking-[0.3em] animate-pulse">{language === 'EN' ? 'Analyzing information...' : '情報を解析中...'}<br/><span className="text-[8px] opacity-70">QUERYING_GLOBAL_NETWORK</span></span>
                     </div>
                   )}
 
                   {output && !isSearching && (
-                    <div className="p-4 sm:p-8 max-w-6xl mx-auto min-h-full pb-20">
-                      <div className={`border border-[var(--border-color)] bg-[var(--bg-color-card)] p-6 sm:p-10 shadow-2xl rounded-sm transition-colors duration-300 ${paperMode ? 'paper-mode' : ''}`}>
+                    <div className={`p-4 sm:p-8 w-full max-w-none mx-auto ${isVertical ? 'h-[calc(100vh-140px)]' : 'min-h-full pb-20'}`}>
+                      <div 
+                        className={`border border-[var(--border-color)] bg-[var(--bg-color-card)] p-6 sm:p-10 shadow-2xl rounded-sm transition-colors duration-300 w-full overflow-auto ${paperMode ? 'paper-mode' : ''}`}
+                        style={{
+                           height: isVertical ? '100%' : 'auto',
+                        }}
+                        dir={isVertical ? 'rtl' : 'ltr'}
+                      >
                         <div
-                          className="markdown-body break-words normal-case"
-                          style={{ fontSize: `${fontSizeRem}rem` }}
+                          className={`markdown-body break-words normal-case ${isVertical ? 'h-full min-w-full' : ''}`}
+                          style={{ 
+                            fontSize: `${fontSizeRem}rem`,
+                            lineHeight: lineHeight,
+                            textAlign: textAlign,
+                            writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
+                          }}
+                          dir="ltr"
                           onClick={(e) => {
                             // Toggle: if playing → stop; if stopped → play from clicked paragraph
                             if (ttsIsPlaying) {
@@ -816,7 +861,12 @@ export default function App() {
                  <div className="flex flex-col h-full min-h-0">
                     <textarea 
                       className="flex-1 w-full min-h-0 bg-transparent p-4 sm:p-8 pb-4 font-mono text-[var(--text-color-highlight)] outline-none resize-none custom-scrollbar"
-                      style={{ fontSize: `${fontSizeRem}rem` }}
+                      style={{ 
+                        fontSize: `${fontSizeRem}rem`,
+                        writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
+                        lineHeight: lineHeight,
+                        textAlign: textAlign,
+                      }}
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       placeholder="// NO_DATA_AVAILABLE"
@@ -824,15 +874,15 @@ export default function App() {
                     <div className="p-4 sm:p-8 pt-4 shrink-0 bg-[var(--bg-color-card)] flex justify-end gap-2 sm:gap-4 border-t border-[var(--border-color)]">
                       <button 
                         onClick={() => { setEditContent(output); setActiveTab('SEARCH_BUFFER'); }}
-                        className="text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] transition-colors px-2 sm:px-4 py-2 font-bold text-[10px] sm:text-xs"
+                        className="text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] transition-colors px-2 sm:px-4 py-2 font-bold text-[11px] sm:text-xs"
                       >
-                        キャンセル (CANCEL)
+                        {language === 'EN' ? 'CANCEL' : 'キャンセル (CANCEL)'}
                       </button>
                       <button 
                         onClick={() => { setOutput(editContent); setActiveTab('SEARCH_BUFFER'); }}
-                        className="bg-[var(--accent-color)] text-[#000000] px-4 sm:px-6 py-2 rounded-sm font-bold transition-all hover:brightness-110 text-[10px] sm:text-xs tracking-wider uppercase shadow-lg border border-transparent hover:border-[#ffffff55]"
+                        className="bg-[var(--accent-color)] text-[#000000] px-4 sm:px-6 py-2 rounded-sm font-bold transition-all hover:brightness-110 text-[11px] sm:text-xs tracking-wider uppercase shadow-lg border border-transparent hover:border-[#ffffff55]"
                       >
-                        編集内容の保存 (SAVE)
+                        {language === 'EN' ? 'SAVE EDITS' : '編集内容の保存 (SAVE)'}
                       </button>
                     </div>
                  </div>
@@ -842,10 +892,10 @@ export default function App() {
               <div className={`absolute bottom-6 right-6 flex flex-col gap-2 z-20 transition-transform duration-300`}>
                  {activeTab === 'SEARCH_BUFFER' && output && (
                    <>
-                     <button onClick={handleSaveAs} title="ダウンロード" className="w-10 h-10 bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm flex items-center justify-center text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] transition-colors shadow-lg">
+                     <button onClick={handleSaveAs} title={language === "EN" ? "Download" : "ダウンロード"} className="w-10 h-10 bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm flex items-center justify-center text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-highlight))] transition-colors shadow-lg">
                         <Download size={14} />
                      </button>
-                     <button onClick={() => setOutput('')} title="出力をクリア" className="w-10 h-10 bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm flex items-center justify-center text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-highlight)] transition-colors shadow-lg">
+                     <button onClick={() => setOutput('')} title={language === "EN" ? "Clear Output" : "出力をクリア"} className="w-10 h-10 bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm flex items-center justify-center text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-highlight))] transition-colors shadow-lg">
                         <RotateCcw size={14} />
                      </button>
                    </>
@@ -855,10 +905,10 @@ export default function App() {
         </main>
 
         {/* RIGHT PANEL - hidden on small screens unless toggled, let's keep it visible on lg */}
-        <aside className="w-[200px] border-l border-[var(--border-color)] bg-[var(--bg-color-panel)] shrink-0 transition-colors duration-300 hidden lg:flex flex-col z-20">
+        <aside className="w-[260px] border-l border-[var(--border-color)] bg-[var(--bg-color-panel)] shrink-0 transition-colors duration-300 hidden lg:flex flex-col z-20">
           <div className="p-3 flex-1 overflow-y-auto custom-scrollbar">
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
-               <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[9px]">00 API KEY</div>
+               <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">00 API KEY</div>
                <input 
                  type="text"
                  value={apiKey}
@@ -867,22 +917,22 @@ export default function App() {
                  autoComplete="off"
                  spellCheck="false"
                  data-1p-ignore
-                 style={{ WebkitTextSecurity: 'disc' }}
-                 className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1 text-[var(--text-color-highlight)] text-[10px] outline-none focus:border-[var(--text-color-dim)]"
+                 style={{ WebkitTextSecurity: 'disc' } as any}
+                 className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1 text-[var(--text-color-highlight)] text-[11px] outline-none focus:border-[var(--text-color-dim)]"
                />
              </div>
 
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
-               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[9px]">06 テーマ (THEMES)</div>
+               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px]">{language === 'EN' ? '06 THEMES' : '06 テーマ (THEMES)'}</div>
                <div className="grid grid-cols-2 gap-1.5">
                  {(['DARK', 'BLACK', 'MID', 'BLUE', 'GREEN', 'RED', 'LIGHT'] as Theme[]).map((t) => (
                    <button 
                      key={t}
                      onClick={() => setTheme(t)}
-                     className={`py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[9px] ${
+                     className={`py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[11px] ${
                        theme === t 
-                         ? 'bg-[var(--border-color)] border-[var(--border-color-highlight)] text-[var(--text-color-highlight)]' 
-                         : 'bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--text-color-base)]'
+                         ? 'bg-[var(--border-color)] border-[var(--border-color-highlight)] text-[var(--active-text-color,var(--text-color-highlight))]' 
+                         : 'bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-base))]'
                      }`}
                    >
                      {t}
@@ -892,7 +942,7 @@ export default function App() {
              </div>
 
              <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300 flex-1 flex flex-col h-1/2">
-               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[9px] shrink-0">07 履歴 (HISTORY)</div>
+               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px] shrink-0">{language === 'EN' ? '07 HISTORY' : '07 履歴 (HISTORY)'}</div>
                <div className="flex flex-col gap-2 overflow-y-auto flex-1 pr-1">
                  {history.length === 0 ? (
                    <div className="py-8 text-center border border-dashed border-[var(--border-color)] text-[var(--text-color-dim)] text-[8px]">
@@ -911,19 +961,19 @@ export default function App() {
                    ))
                  )}
                  {history.length > 0 && (
-                    <button onClick={() => setHistory([])} className="mt-2 text-xs text-[var(--text-color-dim)] hover:text-[var(--text-color-base)] p-2 border border-transparent hover:border-[var(--border-color)] rounded-sm transition-colors">履歴をクリア</button>
+                    <button onClick={() => setHistory([])} className="mt-2 text-xs text-[var(--text-color-dim)] hover:text-[var(--text-color-base)] p-2 border border-transparent hover:border-[var(--border-color)] rounded-sm transition-colors">{language === 'EN' ? 'CLEAR HISTORY' : '履歴をクリア'}</button>
                  )}
                </div>
              </div>
              
              <div className="mt-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
-               <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[9px] flex justify-between items-center">
-                 <span>08 DRIVE 保存先</span>
+               <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px] flex justify-between items-center">
+                 <span>{language === 'EN' ? '08 DRIVE (SAVE LOCATION)' : '08 DRIVE 保存先'}</span>
                  {driveDirName !== '未設定' && (
-                   <button onClick={handleResetDrive} className="text-[var(--accent-color)] hover:text-[#ff4444] hover:underline cursor-pointer">変更(CLEAR)</button>
+                   <button onClick={handleResetDrive} className="text-[var(--accent-color)] hover:text-[#ff4444] hover:underline cursor-pointer">{language === 'EN' ? 'CHANGE (CLEAR)' : '変更(CLEAR)'}</button>
                  )}
                </div>
-               <div className="text-[10px] text-[var(--text-color-base)] truncate bg-[var(--bg-color-base)] border border-[var(--border-color)] p-2 rounded-sm text-center">
+               <div className="text-[11px] text-[var(--text-color-base)] truncate bg-[var(--bg-color-base)] border border-[var(--border-color)] p-2 rounded-sm text-center">
                  {driveDirName}
                </div>
              </div>
@@ -934,11 +984,11 @@ export default function App() {
 
       {/* FOOTER */}
       <footer className="h-10 border-t border-[var(--border-color)] bg-[var(--bg-color-base)] flex items-stretch shrink-0 text-[var(--text-color-dim)] font-bold divide-x divide-[var(--border-color)] transition-colors duration-300 overflow-x-auto whitespace-nowrap relative z-20">
-         <button onClick={handleCopy} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[10px] flex items-center justify-center"><span className="mt-1">{copyStatus}</span></button>
-         <button onClick={() => setOutput('')} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[10px] flex items-center justify-center"><span className="mt-1">クリア (CLEAR)</span></button>
-         <button onClick={() => importFileRef.current?.click()} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[10px] flex items-center justify-center"><span className="mt-1">{importStatus}</span></button>
+         <button onClick={handleCopy} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{copyStatus === 'COPIED!' ? 'COPIED!' : (language === 'EN' ? 'COPY' : '結果をコピー (COPY)')}</span></button>
+         <button onClick={() => setOutput('')} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{language === 'EN' ? 'CLEAR' : 'クリア (CLEAR)'}</span></button>
+         <button onClick={() => importFileRef.current?.click()} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{importStatus === 'IMPORTED!' ? 'IMPORTED!' : importStatus === 'ERROR!' ? 'ERROR!' : (language === 'EN' ? 'IMPORT' : 'インポート (IMPORT)')}</span></button>
          <input type="file" ref={importFileRef} accept=".json" className="hidden" onChange={handleImport} />
-         <button onClick={handleSaveAs} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[10px] flex items-center justify-center"><span className="mt-1">{saveStatus}</span></button>
+         <button onClick={handleSaveAs} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{saveStatus === 'SAVED!' ? 'SAVED!' : (language === 'EN' ? 'EXPORT' : 'エクスポート (EXPORT)')}</span></button>
       </footer>
     </div>
   );
