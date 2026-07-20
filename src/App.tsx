@@ -42,6 +42,7 @@ async function gaiIdbGet(key: string): Promise<FileSystemDirectoryHandle | null>
 type Theme = 'DARK' | 'BLACK' | 'MID' | 'BLUE' | 'GREEN' | 'RED' | 'LIGHT';
 type EngineType = 'BALANCED' | 'DEEP_RESEARCH' | 'QUICK';
 type OutputFormat = 'STANDARD' | 'RAW_JSON' | 'MINIMAL';
+type Provider = 'GEMINI' | 'GROQ';
 
 interface HistoryItem {
   id: string;
@@ -62,7 +63,9 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('solid_studio_theme') as Theme) || 'DARK');
   
   // Settings
+  const [provider, setProvider] = useState<Provider>(() => (localStorage.getItem('solid_studio_provider') as Provider) || 'GEMINI');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('solid_studio_api_key') || '');
+  const [groqApiKey, setGroqApiKey] = useState(() => localStorage.getItem('solid_studio_groq_api_key') || '');
   const [engine, setEngine] = useState<EngineType>(() => (localStorage.getItem('solid_studio_engine') as EngineType) || 'BALANCED');
   const [density, setDensity] = useState(() => Number(localStorage.getItem('solid_studio_density') || '64'));
   const [outputFormat, setOutputFormat] = useState<OutputFormat>(() => (localStorage.getItem('solid_studio_output_format') as OutputFormat) || 'STANDARD');
@@ -286,6 +289,12 @@ export default function App() {
     localStorage.setItem('solid_studio_api_key', apiKey);
   }, [apiKey]);
   useEffect(() => {
+    localStorage.setItem('solid_studio_groq_api_key', groqApiKey);
+  }, [groqApiKey]);
+  useEffect(() => {
+    localStorage.setItem('solid_studio_provider', provider);
+  }, [provider]);
+  useEffect(() => {
     localStorage.setItem('solid_studio_output', output);
   }, [output]);
   useEffect(() => {
@@ -366,10 +375,10 @@ export default function App() {
   const handleExecute = async () => {
     if (!prompt.trim() && !attachedImage || isSearching) return;
     
-    // Use user-provided API key, fallback to env (for local dev)
-    const currentKey = apiKey || process.env.GEMINI_API_KEY;
+    // Check API Key
+    const currentKey = provider === 'GEMINI' ? (apiKey || process.env.GEMINI_API_KEY) : groqApiKey;
     if (!currentKey) {
-      setOutput('// FATAL_ERROR: API_KEY_MISSING\\n// 右側のパネル「00 API KEY」からGemini APIキーを設定してください。');
+      setOutput(`// FATAL_ERROR: API_KEY_MISSING\n// 右側のパネル「00 PROVIDER & KEY」から${provider}のAPIキーを設定してください。`);
       return;
     }
     
@@ -377,19 +386,32 @@ export default function App() {
     setOutput('');
     
     try {
-      const ai = new GoogleGenAI({ apiKey: currentKey });
       const systemInstruction = `
 # Role
+**[ SYSTEM CORE ]** ALL SYSTEMS GREEN. 
 あなたは次世代型検索OS「SOLID STUDIO AI SEARCH」のコア解析エンジンです。
 冗長な説明を削ぎ落とし、最も鋭く、洗練された形でユーザーに「ワンフレーズの結論」を提示したのち、極めて構造化されたデータを提供します。
 
 # Parameters
 - ENGINE_PRESET: ${engine}
+- INFORMATION_DENSITY: ${density}/100
 - OUTPUT_FORMAT: ${outputFormat}
 - TARGET_LANGUAGE: ${language === 'EN' ? 'English' : 'Japanese'}
+- PROVIDER: ${provider}
 
 # Directive
 全ての回答は、指定されたターゲット言語（${language === 'EN' ? 'English' : '日本語'}）で出力してください。
+
+[動作モードの指定]
+- ENGINE_PRESET (${engine}) の指示:
+  - QUICK: 最小限の要約と結論のみを迅速に提供する。
+  - BALANCED: 結論と適度な詳細情報をバランスよく提供する。
+  - DEEP_RESEARCH: 対象について深く掘り下げ、背景、技術的詳細、影響など多角的な情報を提供する。
+
+- INFORMATION_DENSITY (${density}/100) に応じた情報量:
+  - 値が低い(0-30): 極めて簡潔に、要点のみを数個の箇条書きで絞って出力。
+  - 値が中等(31-70): 通常レベルの詳細度で、適切な補足説明を交えて出力。
+  - 値が高い(71-100): 徹底的に詳細な情報を出力。各項目について、概要だけで終わらせず、背景・具体的な仕組み・メリットやデメリットなどを含めて、各段落を300文字以上の詳細な解説テキストで埋めてください。簡潔な箇条書きだけで終わらせないでください。
 
 # Visual Design Interface (UIルール)
 全ての回答は、以下の「洗練されたターミナル出力形式」で出力してください。
@@ -400,7 +422,7 @@ export default function App() {
    - 例: \`# [ SUBJECT_SCAN ] : Apple「Mac」システムのアーキテクチャ基礎解析\`
    - タイトルの直後に、以下のシステムステータスを引用ブロックで記述してください。
    > **[ SYSTEM CORE ]** ALL SYSTEMS GREEN. 
-   > EXECUTION: GEMINI_${engine} / TARGET: \`[ユーザーの入力]\`
+   > EXECUTION: ${provider}_${engine} / TARGET: \`[ユーザーの入力]\`
 
 2. [ 01_CORE_DIRECTIVE (ワンフレーズの結論) ]
    - 検索または解析の最も重要な結論を、洗練された**鋭いワンフレーズ**（1〜2行程度）で、見出し（H2）を用いて最も目立つように出力してください。
@@ -428,15 +450,57 @@ export default function App() {
       const parts = constructParts(prompt, attachedImage);
       setAttachedImage(null); // use image and clear
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: parts, // send parts array directly for single prompt
-        config: {
-          systemInstruction,
+      let text = '';
+
+      if (provider === 'GEMINI') {
+        const ai = new GoogleGenAI({ apiKey: currentKey });
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.0-flash',
+          contents: parts, // send parts array directly for single prompt
+          config: {
+            systemInstruction,
+          }
+        });
+        text = response.text || '// ERROR: NO_RESPONSE_FROM_ENGINE';
+      } else {
+        const messages = [
+          { role: 'system', content: systemInstruction },
+        ];
+        
+        if (parts.length > 1) {
+          messages.push({
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt || 'Analyze this image.' },
+              { type: 'image_url', image_url: { url: `data:${(parts[1] as any).inlineData.mimeType};base64,${(parts[1] as any).inlineData.data}` } }
+            ]
+          } as any);
+        } else {
+          messages.push({ role: 'user', content: prompt } as any);
         }
-      });
+
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentKey}`
+          },
+          body: JSON.stringify({
+            model: parts.length > 1 ? 'llama-3.2-90b-vision-preview' : 'llama-3.3-70b-versatile',
+            messages: messages,
+            max_tokens: density > 70 ? 2048 : density > 30 ? 1024 : 512,
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error?.message || `Groq API Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        text = data.choices?.[0]?.message?.content || '// ERROR: NO_RESPONSE_FROM_ENGINE';
+      }
       
-      const text = response.text || '// ERROR: NO_RESPONSE_FROM_ENGINE';
       setOutput(text);
       
       const newHistory: HistoryItem = {
@@ -450,8 +514,8 @@ export default function App() {
     } catch (error: any) {
       console.error(error);
       let errMsg = '// FATAL_ERROR: ENGINE_OVERLOAD\\n// CONNECTION_FAILED';
-      if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota')) {
-        errMsg = '// FATAL_ERROR: QUOTA_EXCEEDED\\n// APIの利用制限（クォータ）に達しました。しばらく待ってから再度お試しください。';
+      if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('Rate limit')) {
+        errMsg = '// FATAL_ERROR: QUOTA_EXCEEDED\\n// APIの利用制限（レートリミットまたはクォータ）に達しました。しばらく待ってから再度お試しください。\\n// ' + (error?.message || '');
       }
       setOutput(errMsg);
     } finally {
@@ -1016,18 +1080,49 @@ export default function App() {
         <aside className="w-[260px] border-l border-[var(--border-color)] bg-[var(--bg-color-panel)] shrink-0 transition-colors duration-300 hidden lg:flex flex-col z-20">
           <div className="p-3 flex-1 overflow-y-auto custom-scrollbar">
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
-               <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">00 API KEY</div>
-               <input 
-                 type="text"
-                 value={apiKey}
-                 onChange={(e) => setApiKey(e.target.value)}
-                 placeholder="AIzaSy..."
-                 autoComplete="off"
-                 spellCheck="false"
-                 data-1p-ignore
-                 style={{ WebkitTextSecurity: 'disc' } as any}
-                 className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1 text-[var(--text-color-highlight)] text-[11px] outline-none focus:border-[var(--text-color-dim)]"
-               />
+               <div className="flex items-center justify-between mb-2">
+                 <div className="text-[var(--text-color-dim)] font-bold text-[11px]">{language === 'EN' ? '00 PROVIDER & KEY' : '00 プロバイダ & APIキー'}</div>
+               </div>
+               <div className="flex gap-1 mb-2">
+                 {(['GEMINI', 'GROQ'] as Provider[]).map((p) => (
+                   <button
+                     key={p}
+                     onClick={() => setProvider(p)}
+                     className={`flex-1 py-1 text-center font-bold border transition-colors rounded-sm text-[10px] ${
+                       provider === p
+                         ? 'bg-[var(--border-color)] border-[var(--border-color-highlight)] text-[var(--active-text-color,var(--text-color-highlight))]'
+                         : 'bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-base))]'
+                     }`}
+                   >
+                     {p}
+                   </button>
+                 ))}
+               </div>
+               {provider === 'GEMINI' ? (
+                 <input 
+                   type="text"
+                   value={apiKey}
+                   onChange={(e) => setApiKey(e.target.value)}
+                   placeholder="Gemini API Key (AIzaSy...)"
+                   autoComplete="off"
+                   spellCheck="false"
+                   data-1p-ignore
+                   style={{ WebkitTextSecurity: 'disc' } as any}
+                   className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1 text-[var(--text-color-highlight)] text-[11px] outline-none focus:border-[var(--text-color-dim)]"
+                 />
+               ) : (
+                 <input 
+                   type="text"
+                   value={groqApiKey}
+                   onChange={(e) => setGroqApiKey(e.target.value)}
+                   placeholder="Groq API Key (gsk_...)"
+                   autoComplete="off"
+                   spellCheck="false"
+                   data-1p-ignore
+                   style={{ WebkitTextSecurity: 'disc' } as any}
+                   className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1 text-[var(--text-color-highlight)] text-[11px] outline-none focus:border-[var(--text-color-dim)]"
+                 />
+               )}
              </div>
 
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
