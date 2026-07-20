@@ -313,7 +313,7 @@ export default function App() {
     localStorage.setItem('solid_studio_output_format', outputFormat);
   }, [outputFormat]);
   useEffect(() => {
-    localStorage.setItem('solid_studio_font_size_rem', String(fontSizeRem));
+    localStorage.setItem('solid_studio_font_size', String(fontSizeRem));
   }, [fontSizeRem]);
   useEffect(() => {
     localStorage.setItem('solid_studio_line_height', String(lineHeight));
@@ -388,7 +388,6 @@ export default function App() {
     try {
       const systemInstruction = `
 # Role
-**[ SYSTEM CORE ]** ALL SYSTEMS GREEN. 
 あなたは次世代型検索OS「SOLID STUDIO AI SEARCH」のコア解析エンジンです。
 冗長な説明を削ぎ落とし、最も鋭く、洗練された形でユーザーに「ワンフレーズの結論」を提示したのち、極めて構造化されたデータを提供します。
 
@@ -405,13 +404,13 @@ export default function App() {
 [動作モードの指定]
 - ENGINE_PRESET (${engine}) の指示:
   - QUICK: 最小限の要約と結論のみを迅速に提供する。
-  - BALANCED: 結論と適度な詳細情報をバランスよく提供する。
+  - BALANCED: 結論と適度な詳細情報をバランスよく提供する.
   - DEEP_RESEARCH: 対象について深く掘り下げ、背景、技術的詳細、影響など多角的な情報を提供する。
 
 - INFORMATION_DENSITY (${density}/100) に応じた情報量:
   - 値が低い(0-30): 極めて簡潔に、要点のみを数個の箇条書きで絞って出力。
   - 値が中等(31-70): 通常レベルの詳細度で、適切な補足説明を交えて出力。
-  - 値が高い(71-100): 徹底的に詳細な情報を出力。各項目について、概要だけで終わらせず、背景・具体的な仕組み・メリットやデメリットなどを含めて、各段落を300文字以上の詳細な解説テキストで埋めてください。簡潔な箇条書きだけで終わらせないでください。
+  - 値が高い(71-100): 徹底的に詳細な情報を出力。各項目について、概要だけで終わらせず、背景・具体的な仕組み・メリットやデメリットなどを含めて、各段落を最低300文字以上の詳細な解説テキストで記述し、情報量を物理的に増やしてください。さらに、関連する歴史的背景や派生トピックも積極的に追加し、全体として非常にボリュームのある（数千文字規模の）詳細なレポートにしてください。簡潔な箇条書きだけで終わらせることは厳禁です。
 
 # Visual Design Interface (UIルール)
 全ての回答は、以下の「洗練されたターミナル出力形式」で出力してください。
@@ -459,6 +458,7 @@ export default function App() {
           contents: parts, // send parts array directly for single prompt
           config: {
             systemInstruction,
+            tools: [{ googleSearch: {} }],
           }
         });
         text = response.text || '// ERROR: NO_RESPONSE_FROM_ENGINE';
@@ -488,7 +488,7 @@ export default function App() {
           body: JSON.stringify({
             model: parts.length > 1 ? 'llama-3.2-90b-vision-preview' : 'llama-3.3-70b-versatile',
             messages: messages,
-            max_tokens: density > 70 ? 2048 : density > 30 ? 1024 : 512,
+            max_tokens: density > 70 ? 4096 : density > 30 ? 1024 : 512,
           })
         });
 
