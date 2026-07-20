@@ -415,119 +415,235 @@ ${E}`)}return f}),Ln=dN(pE);/**
 `},a),s}function xD(e,t){return e&&"run"in e?async function(i,l){const a=Ev(i,{file:l,...t});await e.run(a,l)}:function(i,l){return Ev(i,{file:l,...e||t})}}function Tv(e){if(e)throw e}var zc,Sv;function ID(){if(Sv)return zc;Sv=1;var e=Object.prototype.hasOwnProperty,t=Object.prototype.toString,i=Object.defineProperty,l=Object.getOwnPropertyDescriptor,a=function(h){return typeof Array.isArray=="function"?Array.isArray(h):t.call(h)==="[object Array]"},s=function(h){if(!h||t.call(h)!=="[object Object]")return!1;var y=e.call(h,"constructor"),E=h.constructor&&h.constructor.prototype&&e.call(h.constructor.prototype,"isPrototypeOf");if(h.constructor&&!y&&!E)return!1;var T;for(T in h);return typeof T>"u"||e.call(h,T)},f=function(h,y){i&&y.name==="__proto__"?i(h,y.name,{enumerable:!0,configurable:!0,value:y.newValue,writable:!0}):h[y.name]=y.newValue},p=function(h,y){if(y==="__proto__")if(e.call(h,y)){if(l)return l(h,y).value}else return;return h[y]};return zc=function g(){var h,y,E,T,_,x,b=arguments[0],M=1,U=arguments.length,Y=!1;for(typeof b=="boolean"&&(Y=b,b=arguments[1]||{},M=2),(b==null||typeof b!="object"&&typeof b!="function")&&(b={});M<U;++M)if(h=arguments[M],h!=null)for(y in h)E=p(b,y),T=p(h,y),b!==T&&(Y&&T&&(s(T)||(_=a(T)))?(_?(_=!1,x=E&&a(E)?E:[]):x=E&&s(E)?E:{},f(b,{name:y,newValue:g(Y,x,T)})):typeof T<"u"&&f(b,{name:y,newValue:T}));return b},zc}var RD=ID();const Oc=Tf(RD);function vf(e){if(typeof e!="object"||e===null)return!1;const t=Object.getPrototypeOf(e);return(t===null||t===Object.prototype||Object.getPrototypeOf(t)===null)&&!(Symbol.toStringTag in e)&&!(Symbol.iterator in e)}function ND(){const e=[],t={run:i,use:l};return t;function i(...a){let s=-1;const f=a.pop();if(typeof f!="function")throw new TypeError("Expected function as last argument, not "+f);p(null,...a);function p(g,...h){const y=e[++s];let E=-1;if(g){f(g);return}for(;++E<a.length;)(h[E]===null||h[E]===void 0)&&(h[E]=a[E]);a=h,y?bD(y,p)(...h):f(null,...h)}}function l(a){if(typeof a!="function")throw new TypeError("Expected `middelware` to be a function, not "+a);return e.push(a),t}}function bD(e,t){let i;return l;function l(...f){const p=e.length>f.length;let g;p&&f.push(a);try{g=e.apply(this,f)}catch(h){const y=h;if(p&&i)throw y;return a(y)}p||(g&&g.then&&typeof g.then=="function"?g.then(s,a):g instanceof Error?a(g):s(g))}function a(f,...p){i||(i=!0,t(f,...p))}function s(f){a(null,f)}}const Fn={basename:wD,dirname:MD,extname:DD,join:UD,sep:"/"};function wD(e,t){if(t!==void 0&&typeof t!="string")throw new TypeError('"ext" argument must be a string');Ir(e);let i=0,l=-1,a=e.length,s;if(t===void 0||t.length===0||t.length>e.length){for(;a--;)if(e.codePointAt(a)===47){if(s){i=a+1;break}}else l<0&&(s=!0,l=a+1);return l<0?"":e.slice(i,l)}if(t===e)return"";let f=-1,p=t.length-1;for(;a--;)if(e.codePointAt(a)===47){if(s){i=a+1;break}}else f<0&&(s=!0,f=a+1),p>-1&&(e.codePointAt(a)===t.codePointAt(p--)?p<0&&(l=a):(p=-1,l=f));return i===l?l=f:l<0&&(l=e.length),e.slice(i,l)}function MD(e){if(Ir(e),e.length===0)return".";let t=-1,i=e.length,l;for(;--i;)if(e.codePointAt(i)===47){if(l){t=i;break}}else l||(l=!0);return t<0?e.codePointAt(0)===47?"/":".":t===1&&e.codePointAt(0)===47?"//":e.slice(0,t)}function DD(e){Ir(e);let t=e.length,i=-1,l=0,a=-1,s=0,f;for(;t--;){const p=e.codePointAt(t);if(p===47){if(f){l=t+1;break}continue}i<0&&(f=!0,i=t+1),p===46?a<0?a=t:s!==1&&(s=1):a>-1&&(s=-1)}return a<0||i<0||s===0||s===1&&a===i-1&&a===l+1?"":e.slice(a,i)}function UD(...e){let t=-1,i;for(;++t<e.length;)Ir(e[t]),e[t]&&(i=i===void 0?e[t]:i+"/"+e[t]);return i===void 0?".":kD(i)}function kD(e){Ir(e);const t=e.codePointAt(0)===47;let i=LD(e,!t);return i.length===0&&!t&&(i="."),i.length>0&&e.codePointAt(e.length-1)===47&&(i+="/"),t?"/"+i:i}function LD(e,t){let i="",l=0,a=-1,s=0,f=-1,p,g;for(;++f<=e.length;){if(f<e.length)p=e.codePointAt(f);else{if(p===47)break;p=47}if(p===47){if(!(a===f-1||s===1))if(a!==f-1&&s===2){if(i.length<2||l!==2||i.codePointAt(i.length-1)!==46||i.codePointAt(i.length-2)!==46){if(i.length>2){if(g=i.lastIndexOf("/"),g!==i.length-1){g<0?(i="",l=0):(i=i.slice(0,g),l=i.length-1-i.lastIndexOf("/")),a=f,s=0;continue}}else if(i.length>0){i="",l=0,a=f,s=0;continue}}t&&(i=i.length>0?i+"/..":"..",l=2)}else i.length>0?i+="/"+e.slice(a+1,f):i=e.slice(a+1,f),l=f-a-1;a=f,s=0}else p===46&&s>-1?s++:s=-1}return i}function Ir(e){if(typeof e!="string")throw new TypeError("Path must be a string. Received "+JSON.stringify(e))}const PD={cwd:GD};function GD(){return"/"}function Ef(e){return!!(e!==null&&typeof e=="object"&&"href"in e&&e.href&&"protocol"in e&&e.protocol&&e.auth===void 0)}function HD(e){if(typeof e=="string")e=new URL(e);else if(!Ef(e)){const t=new TypeError('The "path" argument must be of type string or an instance of URL. Received `'+e+"`");throw t.code="ERR_INVALID_ARG_TYPE",t}if(e.protocol!=="file:"){const t=new TypeError("The URL must be of scheme file");throw t.code="ERR_INVALID_URL_SCHEME",t}return zD(e)}function zD(e){if(e.hostname!==""){const l=new TypeError('File URL host must be "localhost" or empty on darwin');throw l.code="ERR_INVALID_FILE_URL_HOST",l}const t=e.pathname;let i=-1;for(;++i<t.length;)if(t.codePointAt(i)===37&&t.codePointAt(i+1)===50){const l=t.codePointAt(i+2);if(l===70||l===102){const a=new TypeError("File URL path must not include encoded / characters");throw a.code="ERR_INVALID_FILE_URL_PATH",a}}return decodeURIComponent(t)}const Bc=["history","path","basename","stem","extname","dirname"];class i0{constructor(t){let i;t?Ef(t)?i={path:t}:typeof t=="string"||OD(t)?i={value:t}:i=t:i={},this.cwd="cwd"in i?"":PD.cwd(),this.data={},this.history=[],this.messages=[],this.value,this.map,this.result,this.stored;let l=-1;for(;++l<Bc.length;){const s=Bc[l];s in i&&i[s]!==void 0&&i[s]!==null&&(this[s]=s==="history"?[...i[s]]:i[s])}let a;for(a in i)Bc.includes(a)||(this[a]=i[a])}get basename(){return typeof this.path=="string"?Fn.basename(this.path):void 0}set basename(t){qc(t,"basename"),Vc(t,"basename"),this.path=Fn.join(this.dirname||"",t)}get dirname(){return typeof this.path=="string"?Fn.dirname(this.path):void 0}set dirname(t){_v(this.basename,"dirname"),this.path=Fn.join(t||"",this.basename)}get extname(){return typeof this.path=="string"?Fn.extname(this.path):void 0}set extname(t){if(Vc(t,"extname"),_v(this.dirname,"extname"),t){if(t.codePointAt(0)!==46)throw new Error("`extname` must start with `.`");if(t.includes(".",1))throw new Error("`extname` cannot contain multiple dots")}this.path=Fn.join(this.dirname,this.stem+(t||""))}get path(){return this.history[this.history.length-1]}set path(t){Ef(t)&&(t=HD(t)),qc(t,"path"),this.path!==t&&this.history.push(t)}get stem(){return typeof this.path=="string"?Fn.basename(this.path,this.extname):void 0}set stem(t){qc(t,"stem"),Vc(t,"stem"),this.path=Fn.join(this.dirname||"",t+(this.extname||""))}fail(t,i,l){const a=this.message(t,i,l);throw a.fatal=!0,a}info(t,i,l){const a=this.message(t,i,l);return a.fatal=void 0,a}message(t,i,l){const a=new zt(t,i,l);return this.path&&(a.name=this.path+":"+a.name,a.file=this.path),a.fatal=!1,this.messages.push(a),a}toString(t){return this.value===void 0?"":typeof this.value=="string"?this.value:new TextDecoder(t||void 0).decode(this.value)}}function Vc(e,t){if(e&&e.includes(Fn.sep))throw new Error("`"+t+"` cannot be a path: did not expect `"+Fn.sep+"`")}function qc(e,t){if(!e)throw new Error("`"+t+"` cannot be empty")}function _v(e,t){if(!e)throw new Error("Setting `"+t+"` requires `path` to be set too")}function OD(e){return!!(e&&typeof e=="object"&&"byteLength"in e&&"byteOffset"in e)}const BD=(function(e){const l=this.constructor.prototype,a=l[e],s=function(){return a.apply(s,arguments)};return Object.setPrototypeOf(s,l),s}),VD={}.hasOwnProperty;class Jf extends BD{constructor(){super("copy"),this.Compiler=void 0,this.Parser=void 0,this.attachers=[],this.compiler=void 0,this.freezeIndex=-1,this.frozen=void 0,this.namespace={},this.parser=void 0,this.transformers=ND()}copy(){const t=new Jf;let i=-1;for(;++i<this.attachers.length;){const l=this.attachers[i];t.use(...l)}return t.data(Oc(!0,{},this.namespace)),t}data(t,i){return typeof t=="string"?arguments.length===2?(Jc("data",this.frozen),this.namespace[t]=i,this):VD.call(this.namespace,t)&&this.namespace[t]||void 0:t?(Jc("data",this.frozen),this.namespace=t,this):this.namespace}freeze(){if(this.frozen)return this;const t=this;for(;++this.freezeIndex<this.attachers.length;){const[i,...l]=this.attachers[this.freezeIndex];if(l[0]===!1)continue;l[0]===!0&&(l[0]=void 0);const a=i.call(t,...l);typeof a=="function"&&this.transformers.use(a)}return this.frozen=!0,this.freezeIndex=Number.POSITIVE_INFINITY,this}parse(t){this.freeze();const i=Ya(t),l=this.parser||this.Parser;return Fc("parse",l),l(String(i),i)}process(t,i){const l=this;return this.freeze(),Fc("process",this.parser||this.Parser),Yc("process",this.compiler||this.Compiler),i?a(void 0,i):new Promise(a);function a(s,f){const p=Ya(t),g=l.parse(p);l.run(g,p,function(y,E,T){if(y||!E||!T)return h(y);const _=E,x=l.stringify(_,T);YD(x)?T.value=x:T.result=x,h(y,T)});function h(y,E){y||!E?f(y):s?s(E):i(void 0,E)}}}processSync(t){let i=!1,l;return this.freeze(),Fc("processSync",this.parser||this.Parser),Yc("processSync",this.compiler||this.Compiler),this.process(t,a),Av("processSync","process",i),l;function a(s,f){i=!0,Tv(s),l=f}}run(t,i,l){Cv(t),this.freeze();const a=this.transformers;return!l&&typeof i=="function"&&(l=i,i=void 0),l?s(void 0,l):new Promise(s);function s(f,p){const g=Ya(i);a.run(t,g,h);function h(y,E,T){const _=E||t;y?p(y):f?f(_):l(void 0,_,T)}}}runSync(t,i){let l=!1,a;return this.run(t,i,s),Av("runSync","run",l),a;function s(f,p){Tv(f),a=p,l=!0}}stringify(t,i){this.freeze();const l=Ya(i),a=this.compiler||this.Compiler;return Yc("stringify",a),Cv(t),a(t,l)}use(t,...i){const l=this.attachers,a=this.namespace;if(Jc("use",this.frozen),t!=null)if(typeof t=="function")g(t,i);else if(typeof t=="object")Array.isArray(t)?p(t):f(t);else throw new TypeError("Expected usable value, not `"+t+"`");return this;function s(h){if(typeof h=="function")g(h,[]);else if(typeof h=="object")if(Array.isArray(h)){const[y,...E]=h;g(y,E)}else f(h);else throw new TypeError("Expected usable value, not `"+h+"`")}function f(h){if(!("plugins"in h)&&!("settings"in h))throw new Error("Expected usable value but received an empty preset, which is probably a mistake: presets typically come with `plugins` and sometimes with `settings`, but this has neither");p(h.plugins),h.settings&&(a.settings=Oc(!0,a.settings,h.settings))}function p(h){let y=-1;if(h!=null)if(Array.isArray(h))for(;++y<h.length;){const E=h[y];s(E)}else throw new TypeError("Expected a list of plugins, not `"+h+"`")}function g(h,y){let E=-1,T=-1;for(;++E<l.length;)if(l[E][0]===h){T=E;break}if(T===-1)l.push([h,...y]);else if(y.length>0){let[_,...x]=y;const b=l[T][1];vf(b)&&vf(_)&&(_=Oc(!0,b,_)),l[T]=[h,_,...x]}}}}const qD=new Jf().freeze();function Fc(e,t){if(typeof t!="function")throw new TypeError("Cannot `"+e+"` without `parser`")}function Yc(e,t){if(typeof t!="function")throw new TypeError("Cannot `"+e+"` without `compiler`")}function Jc(e,t){if(t)throw new Error("Cannot call `"+e+"` on a frozen processor.\nCreate a new processor first, by calling it: use `processor()` instead of `processor`.")}function Cv(e){if(!vf(e)||typeof e.type!="string")throw new TypeError("Expected node, got `"+e+"`")}function Av(e,t,i){if(!i)throw new Error("`"+e+"` finished async. Use `"+t+"` instead")}function Ya(e){return FD(e)?e:new i0(e)}function FD(e){return!!(e&&typeof e=="object"&&"message"in e&&"messages"in e)}function YD(e){return typeof e=="string"||JD(e)}function JD(e){return!!(e&&typeof e=="object"&&"byteLength"in e&&"byteOffset"in e)}const KD="https://github.com/remarkjs/react-markdown/blob/main/changelog.md",xv=[],Iv={allowDangerousHtml:!0},XD=/^(https?|ircs?|mailto|xmpp)$/i,QD=[{from:"astPlugins",id:"remove-buggy-html-in-markdown-parser"},{from:"allowDangerousHtml",id:"remove-buggy-html-in-markdown-parser"},{from:"allowNode",id:"replace-allownode-allowedtypes-and-disallowedtypes",to:"allowElement"},{from:"allowedTypes",id:"replace-allownode-allowedtypes-and-disallowedtypes",to:"allowedElements"},{from:"className",id:"remove-classname"},{from:"disallowedTypes",id:"replace-allownode-allowedtypes-and-disallowedtypes",to:"disallowedElements"},{from:"escapeHtml",id:"remove-buggy-html-in-markdown-parser"},{from:"includeElementIndex",id:"#remove-includeelementindex"},{from:"includeNodeIndex",id:"change-includenodeindex-to-includeelementindex"},{from:"linkTarget",id:"remove-linktarget"},{from:"plugins",id:"change-plugins-to-remarkplugins",to:"remarkPlugins"},{from:"rawSourcePos",id:"#remove-rawsourcepos"},{from:"renderers",id:"change-renderers-to-components",to:"components"},{from:"source",id:"change-source-to-children",to:"children"},{from:"sourcePos",id:"#remove-sourcepos"},{from:"transformImageUri",id:"#add-urltransform",to:"urlTransform"},{from:"transformLinkUri",id:"#add-urltransform",to:"urlTransform"}];function $D(e){const t=ZD(e),i=WD(e);return jD(t.runSync(t.parse(i),i),e)}function ZD(e){const t=e.rehypePlugins||xv,i=e.remarkPlugins||xv,l=e.remarkRehypeOptions?{...e.remarkRehypeOptions,...Iv}:Iv;return qD().use(wM).use(i).use(xD,l).use(t)}function WD(e){const t=e.children||"",i=new i0;return typeof t=="string"&&(i.value=t),i}function jD(e,t){const i=t.allowedElements,l=t.allowElement,a=t.components,s=t.disallowedElements,f=t.skipHtml,p=t.unwrapDisallowed,g=t.urlTransform||eU;for(const y of QD)Object.hasOwn(t,y.from)&&(""+y.from+(y.to?"use `"+y.to+"` instead":"remove it")+KD+y.id,void 0);return n0(e,h),u1(e,{Fragment:k.Fragment,components:a,ignoreInvalidStyle:!0,jsx:k.jsx,jsxs:k.jsxs,passKeys:!0,passNode:!0});function h(y,E,T){if(y.type==="raw"&&T&&typeof E=="number")return f?T.children.splice(E,1):T.children[E]={type:"text",value:y.value},E;if(y.type==="element"){let _;for(_ in Pc)if(Object.hasOwn(Pc,_)&&Object.hasOwn(y.properties,_)){const x=y.properties[_],b=Pc[_];(b===null||b.includes(y.tagName))&&(y.properties[_]=g(String(x||""),_,y))}}if(y.type==="element"){let _=i?!i.includes(y.tagName):s?s.includes(y.tagName):!1;if(!_&&l&&typeof E=="number"&&(_=!l(y,E,T)),_&&T&&typeof E=="number")return p&&y.children?T.children.splice(E,1,...y.children):T.children.splice(E,1),E}}}function eU(e){const t=e.indexOf(":"),i=e.indexOf("?"),l=e.indexOf("#"),a=e.indexOf("/");return t===-1||a!==-1&&t>a||i!==-1&&t>i||l!==-1&&t>l||XD.test(e.slice(0,t))?e:""}const yr="GAI_CLOUD_DIR_HANDLE",tU="GAI_CLOUD_IDB",Cr="handles";function o0(){return new Promise((e,t)=>{const i=indexedDB.open(tU,1);i.onupgradeneeded=l=>l.target.result.createObjectStore(Cr),i.onsuccess=l=>e(l.target.result),i.onerror=l=>t(l.target.error)})}async function Kc(e,t){const i=await o0();return new Promise((l,a)=>{const s=i.transaction(Cr,"readwrite");s.objectStore(Cr).put(t,e),s.oncomplete=()=>l(),s.onerror=f=>a(f.target.error)})}async function Rv(e){const t=await o0();return new Promise((i,l)=>{const s=t.transaction(Cr,"readonly").objectStore(Cr).get(e);s.onsuccess=f=>i(f.target.result),s.onerror=f=>l(f.target.error)})}function nU(){const[e,t]=ue.useState(()=>localStorage.getItem("solid_studio_active_tab")||"SEARCH_BUFFER"),[i,l]=ue.useState(()=>localStorage.getItem("solid_studio_theme")||"DARK"),[a,s]=ue.useState(()=>localStorage.getItem("solid_studio_provider")||"GEMINI"),[f,p]=ue.useState(()=>localStorage.getItem("solid_studio_api_key")||""),[g,h]=ue.useState(()=>localStorage.getItem("solid_studio_groq_api_key")||""),[y,E]=ue.useState(()=>localStorage.getItem("solid_studio_engine")||"BALANCED"),[T,_]=ue.useState(()=>Number(localStorage.getItem("solid_studio_density")||"64")),[x,b]=ue.useState(()=>localStorage.getItem("solid_studio_output_format")||"STANDARD"),[M,U]=ue.useState(()=>Number(localStorage.getItem("solid_studio_font_size_rem")||"0.85")),[Y,z]=ue.useState(()=>Number(localStorage.getItem("solid_studio_line_height")||"1.6")),[Z,ne]=ue.useState(()=>localStorage.getItem("solid_studio_text_align")||"left"),[N,W]=ue.useState(()=>localStorage.getItem("solid_studio_paper_mode")==="true"),[te,$]=ue.useState(()=>localStorage.getItem("solid_studio_is_vertical")==="true"),[ae,oe]=ue.useState(()=>localStorage.getItem("solid_studio_is_sidebar_open")!=="false"),[re,Se]=ue.useState(!1),[B,j]=ue.useState(()=>localStorage.getItem("solid_studio_language")||"JP"),P=ue.useRef(null),ee=ue.useRef(null);ue.useEffect(()=>{const F=P.current;if(!F)return;const Ee=Ce=>{te&&Ce.deltaY!==0&&(Ce.preventDefault(),F.scrollLeft-=Ce.deltaY,F.scrollBy({left:-Ce.deltaY}))};return F.addEventListener("wheel",Ee,{passive:!1}),()=>F.removeEventListener("wheel",Ee)},[te]),ue.useEffect(()=>{const F=ee.current;if(!F)return;const Ee=Ce=>{te&&Ce.deltaY!==0&&(Ce.preventDefault(),F.scrollBy({left:-Ce.deltaY}))};return F.addEventListener("wheel",Ee,{passive:!1}),()=>F.removeEventListener("wheel",Ee)},[te]),ue.useEffect(()=>{const F=()=>{Se(!!document.fullscreenElement)};return document.addEventListener("fullscreenchange",F),()=>document.removeEventListener("fullscreenchange",F)},[]);const fe=()=>{document.fullscreenElement?document.exitFullscreen&&document.exitFullscreen().catch(console.error):document.documentElement.requestFullscreen().catch(console.error)},[ye,I]=ue.useState([]),[w,J]=ue.useState(()=>localStorage.getItem("tts_voice_uri")||""),[A,se]=ue.useState(()=>Number(localStorage.getItem("tts_rate")||"1.0")),[he,me]=ue.useState(()=>Number(localStorage.getItem("tts_pitch")||"1.0")),[Ie,et]=ue.useState(()=>Number(localStorage.getItem("tts_volume")||"1.0")),[He,It]=ue.useState(!1),In=ue.useRef(null),[Ft,Xi]=ue.useState(""),[Tt,Kn]=ue.useState(!1),[Ke,Yt]=ue.useState(()=>localStorage.getItem("solid_studio_output")||""),[Qi,zn]=ue.useState(""),[Rn,Xn]=ue.useState(null),vo=ue.useRef(null),[Qn,pt]=ue.useState(()=>{try{const F=localStorage.getItem("solid_studio_history");if(F)return JSON.parse(F)}catch(F){console.error("Failed to load history",F)}return[]}),[vl,K]=ue.useState("結果をコピー (COPY)"),[le,ve]=ue.useState("インポート (IMPORT)"),Me=ue.useRef(null);ue.useEffect(()=>{document.documentElement.setAttribute("data-theme",i)},[i]),ue.useEffect(()=>{const F=()=>{const Ee=window.speechSynthesis.getVoices();Ee.length>0&&(I(Ee),J(Ce=>{var St;if(Ce&&Ee.some(ht=>ht.voiceURI===Ce))return Ce;const Xe=Ee.find(ht=>ht.lang.startsWith("ja"));return Xe?Xe.voiceURI:((St=Ee[0])==null?void 0:St.voiceURI)||""}))};return F(),window.speechSynthesis.onvoiceschanged=F,()=>{window.speechSynthesis.cancel()}},[]),ue.useEffect(()=>{try{const St=localStorage.getItem("solid_studio_win_x"),ht=localStorage.getItem("solid_studio_win_y"),_t=localStorage.getItem("solid_studio_win_w"),wn=localStorage.getItem("solid_studio_win_h"),We=_t?Number(_t):1280,Ct=wn?Number(wn):800,Rt=Math.max(0,(window.screen.availWidth-We)/2),rt=Math.max(0,(window.screen.availHeight-Ct)/2),Ne=St?Number(St):Rt,ct=ht?Number(ht):rt;window.resizeTo(We,Ct),window.moveTo(Ne,ct)}catch{}const F=()=>{try{localStorage.setItem("solid_studio_win_x",String(window.screenX)),localStorage.setItem("solid_studio_win_y",String(window.screenY)),localStorage.setItem("solid_studio_win_w",String(window.outerWidth)),localStorage.setItem("solid_studio_win_h",String(window.outerHeight))}catch{}};window.addEventListener("resize",F);const Ee=setInterval(F,1e3);return()=>{window.removeEventListener("resize",F),clearInterval(Ee)}},[]),ue.useEffect(()=>{window.speechSynthesis.cancel(),It(!1)},[Ke]);const Pe=ue.useCallback(F=>{if(!F)return;window.speechSynthesis.cancel();const Ee=new SpeechSynthesisUtterance(F),Ce=ye.find(Xe=>Xe.voiceURI===w);Ce&&(Ee.voice=Ce),Ee.rate=A,Ee.pitch=he,Ee.volume=Ie,Ee.onstart=()=>It(!0),Ee.onend=()=>It(!1),Ee.onerror=()=>It(!1),In.current=Ee,window.speechSynthesis.speak(Ee)},[ye,w,A,he,Ie]),Pt=ue.useCallback(()=>{window.speechSynthesis.cancel(),It(!1)},[]),Nn=ue.useCallback(()=>{if(!Ke)return;const F=Ke.replace(/#{1,6}\s+/g,"").replace(/[\*_`~>\[\]]/g,"").replace(/\|/g," ");Pe(F)},[Ke,Pe]),Mt=ue.useCallback(F=>{if(!Ke||!F)return;const Ee=Ke.replace(/#{1,6}\s+/g,"").replace(/[\*_`~>\[\]]/g,"").replace(/\|/g," "),Ce=Ee.indexOf(F.substring(0,30)),Xe=Ce>-1?Ee.substring(Ce):Ee;Pe(Xe)},[Ke,Pe]);ue.useEffect(()=>{localStorage.setItem("solid_studio_history",JSON.stringify(Qn))},[Qn]),ue.useEffect(()=>{localStorage.setItem("solid_studio_api_key",f)},[f]),ue.useEffect(()=>{localStorage.setItem("solid_studio_groq_api_key",g)},[g]),ue.useEffect(()=>{localStorage.setItem("solid_studio_provider",a)},[a]),ue.useEffect(()=>{localStorage.setItem("solid_studio_output",Ke)},[Ke]),ue.useEffect(()=>{localStorage.setItem("solid_studio_theme",i)},[i]),ue.useEffect(()=>{localStorage.setItem("solid_studio_active_tab",e)},[e]),ue.useEffect(()=>{localStorage.setItem("solid_studio_engine",y)},[y]),ue.useEffect(()=>{localStorage.setItem("solid_studio_density",String(T))},[T]),ue.useEffect(()=>{localStorage.setItem("solid_studio_output_format",x)},[x]),ue.useEffect(()=>{localStorage.setItem("solid_studio_font_size",String(M))},[M]),ue.useEffect(()=>{localStorage.setItem("solid_studio_line_height",String(Y))},[Y]),ue.useEffect(()=>{localStorage.setItem("solid_studio_text_align",Z)},[Z]),ue.useEffect(()=>{localStorage.setItem("solid_studio_paper_mode",String(N))},[N]),ue.useEffect(()=>{localStorage.setItem("solid_studio_is_vertical",String(te))},[te]),ue.useEffect(()=>{localStorage.setItem("solid_studio_is_sidebar_open",String(ae))},[ae]),ue.useEffect(()=>{localStorage.setItem("solid_studio_language",B)},[B]),ue.useEffect(()=>{localStorage.setItem("tts_rate",String(A))},[A]),ue.useEffect(()=>{localStorage.setItem("tts_pitch",String(he))},[he]),ue.useEffect(()=>{localStorage.setItem("tts_volume",String(Ie))},[Ie]),ue.useEffect(()=>{localStorage.setItem("tts_voice_uri",w)},[w]);const ut=F=>{Xi(F.keyword),Yt(F.result),t("SEARCH_BUFFER")},Gt=F=>{var Xe;const Ee=(Xe=F.target.files)==null?void 0:Xe[0];if(!Ee)return;const Ce=new FileReader;Ce.onload=St=>{var ht;Xn((ht=St.target)==null?void 0:ht.result)},Ce.readAsDataURL(Ee),F.target.value=""},Fe=(F,Ee)=>{const Ce=[{text:F||" "}];if(Ee){const Xe=Ee.split(";")[0].split(":")[1],St=Ee.split(",")[1];Ce.push({inlineData:{data:St,mimeType:Xe}})}return Ce},bn=async()=>{var Ee,Ce,Xe,St,ht,_t,wn;if(!Ft.trim()&&!Rn||Tt)return;const F=a==="GEMINI"?f||"":g;if(!F){Yt(`// FATAL_ERROR: API_KEY_MISSING
 // 右側のパネル「00 PROVIDER & KEY」から${a}のAPIキーを設定してください。`);return}Kn(!0),Yt("");try{const We=`
 
+
+
 # Role
 
+
+
 あなたは次世代型検索OS「SOLID STUDIO AI SEARCH」のコア解析エンジンです。
+
+
 
 冗長な説明を削ぎ落とし、最も鋭く、洗練された形でユーザーに「ワンフレーズの結論」を提示したのち、極めて構造化されたデータを提供します。
 
 
 
+
+
+
+
 # Parameters
+
+
 
 - ENGINE_PRESET: ${y}
 
+
+
 - INFORMATION_DENSITY: ${T}/100
+
+
 
 - OUTPUT_FORMAT: ${x}
 
+
+
 - TARGET_LANGUAGE: ${B==="EN"?"English":"Japanese"}
+
+
 
 - PROVIDER: ${a}
 
 
 
+
+
+
+
 # Directive
+
+
 
 全ての回答は、指定されたターゲット言語（${B==="EN"?"English":"日本語"}）で出力してください。
 
 
 
+
+
+
+
 [動作モードの指定]
+
+
 
 - ENGINE_PRESET (${y}) の指示:
 
+
+
   - QUICK: 最小限の要約と結論のみを迅速に提供する。
 
+
+
   - BALANCED: 結論と適度な詳細情報をバランスよく提供する.
+
+
 
   - DEEP_RESEARCH: 対象について深く掘り下げ、背景、技術的詳細、影響など多角的な情報を提供する。
 
 
 
+
+
+
+
 - INFORMATION_DENSITY (${T}/100) に応じた情報量:
+
+
 
   - 値が低い(0-30): 極めて簡潔に、要点のみを数個の箇条書きで絞って出力。
 
+
+
   - 値が中等(31-70): 通常レベルの詳細度で、適切な補足説明を交えて出力。
+
+
 
   - 値が高い(71-100): 徹底的に詳細な情報を出力。各項目について、概要だけで終わらせず、背景・具体的な仕組み・メリットやデメリットなどを含めて、各段落を最低300文字以上の詳細な解説テキストで記述し、情報量を物理的に増やしてください。さらに、関連する歴史的背景や派生トピックも積極的に追加し、全体として非常にボリュームのある（数千文字規模の）詳細なレポートにしてください。簡潔な箇条書きだけで終わらせることは厳禁です。
 
 
 
+
+
+
+
 # Visual Design Interface (UIルール)
+
+
 
 全ての回答は、以下の「洗練されたターミナル出力形式」で出力してください。
 
 
 
+
+
+
+
 1. [ 00_DATA_TITLE (ログの見出し) ]
+
+
 
    - 一番最初の行に、検索対象を象徴する、短く知的な「見出し（H1）」を記述して開始してください。この１行目がログ閲覧時のタイトルになります。「[ HEADER ]」という文字は書かないでください。
 
+
+
    - 形式: \`# [ SUBJECT_SCAN ] : ユーザーの入力内容を洗練・再構築したタイトル\`
+
+
 
    - 例: \`# [ SUBJECT_SCAN ] : Apple「Mac」システムのアーキテクチャ基礎解析\`
 
+
+
    - タイトルの直後に、以下のシステムステータスを引用ブロックで記述してください。
 
+
+
    > **[ SYSTEM CORE ]** ALL SYSTEMS GREEN. 
+
+
 
    > EXECUTION: ${a}_${y} / TARGET: \`[ユーザーの入力]\`
 
 
 
+
+
+
+
 2. [ 01_CORE_DIRECTIVE (ワンフレーズの結論) ]
+
+
 
    - 検索または解析の最も重要な結論を、洗練された**鋭いワンフレーズ**（1〜2行程度）で、見出し（H2）を用いて最も目立つように出力してください。
 
+
+
    - 例:
+
+
 
      ## ーーそれは、進化を加速させるための特異点。
 
 
 
+
+
+
+
 3. [ 02_DATA_GRID (詳細解析) ]
 
-   - 具体的な事実や解説を、箇条書き( \`-\` ) または テーブル形式( \`|\` ) で極めて簡潔かつ構造的に出力します。無駄な文脈は省いてください。
+   - 具体的な事実や解説を、箇条書き( \`-\` ) または テーブル形式( \`|\` ) で構造的に出力します。
+
+   - 【重要】INFORMATION_DENSITY が高い(71-100)の場合は、「極めて簡潔に」というルールよりも詳細さを優先し、各項目について背景や具体的な仕組み、メリットやデメリットなどを最低300文字以上の詳細な解説テキストとして詳しく記述してください。簡潔な単語のみの箇条書きで終わらせることは厳禁です。
+
+
+
+
 
 
 
 4. [ 03_STRATEGIC_OVERVIEW (戦略的視座) ]
 
+
+
    - この情報がもたらす「本質的な価値」や「次に打つべき最適手」を、AI独自の冷徹な視点から分析し、短い1つのパラグラフで提示してください。
+
+
+
+
 
 
 
 5. [ 04_SOURCE_NODES ]
 
+
+
    - 関連する情報領域やキーワードを \`[ NODE: タイトル ]\` のようなテキストバッジ形式で列挙してください。
+
+
+
+
 
 
 
 6. [ FOOTER ]
 
+
+
    - 最後に水平線 \`---\` を引き、 \`// END_OF_TRANSMISSION : [現在の時刻]\` と記述してください。
+
+
+
+
 
 
 
 # Behavior
 
+
+
 - トーンは「無機質、冷徹、しかし知的でスタイリッシュ」を維持してください。
+
+
 
 - 丁寧語と体言止めをリズミカルに混ぜ、サイバーでかっこいい語り口にしてください。
 
+
+
 - 挨拶や余計な前書き（「検索結果はこちらです」など）は一切不要です。即座にHEADERからコンソール出力のように始めてください。
+
+
 
 `,Ct=Fe(Ft,Rn);Xn(null);let Rt="";if(a==="GEMINI")Rt=(await new ib({apiKey:F}).models.generateContent({model:"gemini-2.0-flash",contents:Ct,config:{systemInstruction:We,tools:[{googleSearch:{}}]}})).text||"// ERROR: NO_RESPONSE_FROM_ENGINE";else{const Ne=[{role:"system",content:We}];Ct.length>1?Ne.push({role:"user",content:[{type:"text",text:Ft||"Analyze this image."},{type:"image_url",image_url:{url:`data:${Ct[1].inlineData.mimeType};base64,${Ct[1].inlineData.data}`}}]}):Ne.push({role:"user",content:Ft});const ct=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${F}`},body:JSON.stringify({model:Ct.length>1?"llama-3.2-90b-vision-preview":"llama-3.3-70b-versatile",messages:Ne,max_tokens:T>70?4096:T>30?1024:512})});if(!ct.ok){const To=await ct.json().catch(()=>({}));throw new Error(((Ee=To.error)==null?void 0:Ee.message)||`Groq API Error: ${ct.status}`)}Rt=((St=(Xe=(Ce=(await ct.json()).choices)==null?void 0:Ce[0])==null?void 0:Xe.message)==null?void 0:St.content)||"// ERROR: NO_RESPONSE_FROM_ENGINE"}Yt(Rt);const rt={id:Date.now().toString(),keyword:Ft||"IMAGE_SEARCH",timestamp:new Date().toLocaleTimeString("ja-JP"),result:Rt};pt(Ne=>[rt,...Ne].slice(0,10))}catch(We){console.error(We);let Ct="// FATAL_ERROR: ENGINE_OVERLOAD\\n// CONNECTION_FAILED";((We==null?void 0:We.status)===429||(ht=We==null?void 0:We.message)!=null&&ht.includes("429")||(_t=We==null?void 0:We.message)!=null&&_t.includes("quota")||(wn=We==null?void 0:We.message)!=null&&wn.includes("Rate limit"))&&(Ct="// FATAL_ERROR: QUOTA_EXCEEDED\\n// APIの利用制限（レートリミットまたはクォータ）に達しました。しばらく待ってから再度お試しください。\\n// "+((We==null?void 0:We.message)||"")),Yt(Ct)}finally{Kn(!1)}},nn=F=>{F.key==="Enter"&&bn()},ds=()=>{const F=Ke;F&&(navigator.clipboard.writeText(F),K("COPIED!"),setTimeout(()=>K(B==="EN"?"COPY":"結果をコピー (COPY)"),2e3))},[Eo,$n]=ue.useState(B==="EN"?"EXPORT":"エクスポート (EXPORT)"),[$i,on]=ue.useState(B==="EN"?"Not Set":"未設定"),vi=window.self!==window.top;ue.useEffect(()=>{if(vi){on(B==="EN"?"Browser DL Folder (iframe limit)":"ブラウザのDLフォルダ (iframe制限)");return}Rv(yr).then(F=>{F&&on(F.name)}).catch(()=>{})},[vi]);const Ei=async()=>{let F="",Ee="";const Ce=new Date,Xe=Ce.getFullYear(),St=String(Ce.getMonth()+1).padStart(2,"0"),ht=String(Ce.getDate()).padStart(2,"0"),_t=String(Ce.getHours()).padStart(2,"0"),wn=String(Ce.getMinutes()).padStart(2,"0"),We=`${Xe}${St}${ht}_${_t}${wn}`;if(!Ke)return;F=Ke;let Ct=Ft?Ft.trim().substring(0,30):"SEARCH";const Rt=Ke.split(`
 `)[0];if(Rt.includes("[ SUBJECT_SCAN ] : ")){const Ne=Rt.split("[ SUBJECT_SCAN ] : ")[1].trim();Ne&&(Ct=Ne.substring(0,50))}Ct=Ct.replace(/[\\/:*?"<>|]/g,"_"),Ee=`${We}_${Ct}.txt`;const rt=()=>{const Ne=new Blob([F],{type:"text/plain;charset=utf-8"}),ct=URL.createObjectURL(Ne),Mn=document.createElement("a");Mn.href=ct,Mn.download=Ee,document.body.appendChild(Mn),Mn.click(),setTimeout(()=>{URL.revokeObjectURL(ct),Mn.remove()},1e3),$n("SAVED!"),setTimeout(()=>$n(B==="EN"?"EXPORT":"エクスポート (EXPORT)"),2e3)};if(vi){rt();return}try{let Ne=await Rv(yr);if(!Ne){if(!("showDirectoryPicker"in window)){alert(B==="EN"?"Your browser does not support the File System Access API.":"お使いのブラウザはFile System Access APIに対応していません。");return}Ne=await window.showDirectoryPicker({mode:"readwrite"}),await Kc(yr,Ne),on(Ne.name)}let ct=await Ne.queryPermission({mode:"readwrite"});if(ct!=="granted"&&(ct=await Ne.requestPermission({mode:"readwrite"})),ct!=="granted"){alert(B==="EN"?"Folder access was not granted. Resetting configuration.":"フォルダへのアクセスが許可されませんでした。設定をリセットします。"),await Kc(yr,null),on(B==="EN"?"Not Set":"未設定");return}const To=await(await Ne.getFileHandle(Ee,{create:!0})).createWritable();await To.write(F),await To.close(),$n("SAVED!"),setTimeout(()=>$n(B==="EN"?"EXPORT":"エクスポート (EXPORT)"),2e3)}catch(Ne){console.error(Ne),Ne.name!=="AbortError"&&alert(B==="EN"?"Save Error: "+Ne.message+`
