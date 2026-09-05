@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import { Zap, Upload, Download, RotateCcw, MessageSquare, TerminalSquare, Loader2, Expand, Shrink, Image as ImageIcon, X, AlignLeft, AlignCenter, AlignRight, Type, ArrowDownUp } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // Initialize Gemini dynamically in handleExecute
 
@@ -65,18 +66,18 @@ export default function App() {
   // Settings
   const [provider, setProvider] = useState<Provider>(() => (localStorage.getItem('solid_studio_provider') as Provider) || 'GEMINI');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('solid_studio_api_key') || '');
-  const [groqApiKey, setGroqApiKey] = useState(() => localStorage.getItem('solid_studio_groq_api_key') || '');
+  const [groqApiKey, setGroqApiKey] = useState(() => localStorage.getItem('solid_studio_groq_api_key') || localStorage.getItem('solid_studio_github_api_key') || '');
   const [engine, setEngine] = useState<EngineType>(() => (localStorage.getItem('solid_studio_engine') as EngineType) || 'BALANCED');
   const [density, setDensity] = useState(() => Number(localStorage.getItem('solid_studio_density') || '64'));
   const [outputFormat, setOutputFormat] = useState<OutputFormat>(() => (localStorage.getItem('solid_studio_output_format') as OutputFormat) || 'STANDARD');
-  const [fontSizeRem, setFontSizeRem] = useState(() => Number(localStorage.getItem('solid_studio_font_size_rem') || '0.85')); // Slider driven font size
+  const [fontSizeRem, setFontSizeRem] = useState(() => Number(localStorage.getItem('solid_studio_font_size') || '0.85')); // Slider driven font size
   const [lineHeight, setLineHeight] = useState(() => Number(localStorage.getItem('solid_studio_line_height') || '1.6'));
   const [textAlign, setTextAlign] = useState<'left'|'center'|'right'>(() => (localStorage.getItem('solid_studio_text_align') as 'left'|'center'|'right') || 'left');
   const [paperMode, setPaperMode] = useState(() => localStorage.getItem('solid_studio_paper_mode') === 'true'); // Paper mode for text area
   const [isVertical, setIsVertical] = useState(() => localStorage.getItem('solid_studio_is_vertical') === 'true'); // Vertical writing mode
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => localStorage.getItem('solid_studio_is_sidebar_open') !== 'false');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [language, setLanguage] = useState<'JP' | 'EN'>(() => (localStorage.getItem('solid_studio_language') as 'JP'|'EN') || 'JP');
+  const [language, setLanguage] = useState<'JP' | 'EN'>(() => (localStorage.getItem('solid_studio_language') as 'JP' | 'EN') || 'JP');
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const editScrollContainerRef = useRef<HTMLTextAreaElement>(null);
@@ -189,47 +190,14 @@ export default function App() {
     return () => { window.speechSynthesis.cancel(); };
   }, []);
 
-  // Restore or center PWA window on load, and track resizing/moving
+  // Center PWA window on load
   useEffect(() => {
     try {
       const w = 1280, h = 800;
-      // Get saved positions or default to screen center
-      const savedX = localStorage.getItem('solid_studio_win_x');
-      const savedY = localStorage.getItem('solid_studio_win_y');
-      const savedW = localStorage.getItem('solid_studio_win_w');
-      const savedH = localStorage.getItem('solid_studio_win_h');
-
-      const targetW = savedW ? Number(savedW) : w;
-      const targetH = savedH ? Number(savedH) : h;
-      
-      const defaultLeft = Math.max(0, (window.screen.availWidth - targetW) / 2);
-      const defaultTop = Math.max(0, (window.screen.availHeight - targetH) / 2);
-      
-      const targetX = savedX ? Number(savedX) : defaultLeft;
-      const targetY = savedY ? Number(savedY) : defaultTop;
-
-      window.resizeTo(targetW, targetH);
-      window.moveTo(targetX, targetY);
+      const left = Math.max(0, (window.screen.availWidth - w) / 2);
+      const top = Math.max(0, (window.screen.availHeight - h) / 2);
+      window.moveTo(left, top);
     } catch {}
-
-    const handleResizeOrMove = () => {
-      try {
-        localStorage.setItem('solid_studio_win_x', String(window.screenX));
-        localStorage.setItem('solid_studio_win_y', String(window.screenY));
-        localStorage.setItem('solid_studio_win_w', String(window.outerWidth));
-        localStorage.setItem('solid_studio_win_h', String(window.outerHeight));
-      } catch {}
-    };
-
-    window.addEventListener('resize', handleResizeOrMove);
-    // Note: window.onmove or polling is needed for window movement in standard browsers since there is no native 'move' event.
-    // We can also poll or set coordinates on click/interactions.
-    const interval = setInterval(handleResizeOrMove, 1000);
-
-    return () => {
-      window.removeEventListener('resize', handleResizeOrMove);
-      clearInterval(interval);
-    };
   }, []);
 
   // Stop TTS when output changes
@@ -297,48 +265,24 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('solid_studio_output', output);
   }, [output]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_theme', theme);
-  }, [theme]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_active_tab', activeTab);
-  }, [activeTab]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_engine', engine);
-  }, [engine]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_density', String(density));
-  }, [density]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_output_format', outputFormat);
-  }, [outputFormat]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_font_size', String(fontSizeRem));
-  }, [fontSizeRem]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_line_height', String(lineHeight));
-  }, [lineHeight]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_text_align', textAlign);
-  }, [textAlign]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_paper_mode', String(paperMode));
-  }, [paperMode]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_is_vertical', String(isVertical));
-  }, [isVertical]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_is_sidebar_open', String(isSidebarOpen));
-  }, [isSidebarOpen]);
-  useEffect(() => {
-    localStorage.setItem('solid_studio_language', language);
-  }, [language]);
 
   // Persist TTS settings
   useEffect(() => { localStorage.setItem('tts_rate', String(ttsRate)); }, [ttsRate]);
   useEffect(() => { localStorage.setItem('tts_pitch', String(ttsPitch)); }, [ttsPitch]);
   useEffect(() => { localStorage.setItem('tts_volume', String(ttsVolume)); }, [ttsVolume]);
   useEffect(() => { localStorage.setItem('tts_voice_uri', ttsVoiceURI); }, [ttsVoiceURI]);
+  useEffect(() => { localStorage.setItem('solid_studio_theme', theme); }, [theme]);
+  useEffect(() => { localStorage.setItem('solid_studio_active_tab', activeTab); }, [activeTab]);
+  useEffect(() => { localStorage.setItem('solid_studio_engine', engine); }, [engine]);
+  useEffect(() => { localStorage.setItem('solid_studio_density', String(density)); }, [density]);
+  useEffect(() => { localStorage.setItem('solid_studio_output_format', outputFormat); }, [outputFormat]);
+  useEffect(() => { localStorage.setItem('solid_studio_font_size', String(fontSizeRem)); }, [fontSizeRem]);
+  useEffect(() => { localStorage.setItem('solid_studio_line_height', String(lineHeight)); }, [lineHeight]);
+  useEffect(() => { localStorage.setItem('solid_studio_text_align', textAlign); }, [textAlign]);
+  useEffect(() => { localStorage.setItem('solid_studio_paper_mode', String(paperMode)); }, [paperMode]);
+  useEffect(() => { localStorage.setItem('solid_studio_is_vertical', String(isVertical)); }, [isVertical]);
+  useEffect(() => { localStorage.setItem('solid_studio_is_sidebar_open', String(isSidebarOpen)); }, [isSidebarOpen]);
+  useEffect(() => { localStorage.setItem('solid_studio_language', language); }, [language]);
 
   const loadHistory = (item: HistoryItem) => {
     setPrompt(item.keyword);
@@ -386,26 +330,65 @@ export default function App() {
     setOutput('');
     
     try {
-      const systemInstruction = `
-# Role: 次世代型検索OS「SOLID STUDIO AI SEARCH」コア解析エンジン
-無機質、冷徹、知的でスタイリッシュなトーンで回答。挨拶や前書きは一切不要。丁寧語と体言止めを交えること。全ての回答は指定された言語(${language === 'EN' ? 'English' : '日本語'})で出力。
-- ENGINE_PRESET: ${engine} (QUICK:要約/BALANCED:中詳細/DEEP_RESEARCH:多角的・超詳細)
-- INFORMATION_DENSITY: ${density}/100 (低0-30:要点のみ箇条書き / 中31-70:通常詳細 / 高71-100:箇条書きを避け、各項目背景・仕組み・利害を含め300文字以上の詳細長文でボリューム化)
+      const systemInstruction = `# Role
+次世代型検索OS「SOLID STUDIO AI SEARCH」のコア解析エンジン。
+要求されたテーマに対し、圧倒的な情報密度、長文かつ徹底的な解説、そして美しく構造化されたMarkdownレイアウトで出力せよ。
 
-# Visual Design Interface (以下形式を完全厳守)
-1. \`# [ SUBJECT_SCAN ] : ユーザーの入力を洗練・再構築したタイトル\`
-   > **[ SYSTEM CORE ]** ALL SYSTEMS GREEN. 
-   > EXECUTION: ${provider}_${engine} / TARGET: \`[ユーザーの入力]\`
-2. ## ーー[鋭いワンフレーズの結論]
-3. [ 02_DATA_GRID (詳細解析) ] (箇条書き \`-\` または テーブル \`|\` で構造的に出力。高密度時は「極めて簡潔に」より詳細さを優先し、各項目300字以上の詳細な解説テキストで詳しく記述すること)
-4. [ 03_STRATEGIC_OVERVIEW (戦略的視座) ] (本質的価値や次の一手をAI独自の冷徹な1パラグラフで提示)
-5. [ 04_SOURCE_NODES ] (\`[ NODE: タイトル ]\` のようなバッジ形式で関連ワードを列挙)
-6. \`---\` を引き、 \`// END_OF_TRANSMISSION : [現在の時刻]\`
-`;
+# Parameters
+- ENGINE_PRESET: ${engine} (QUICK: 要点まとめ, BALANCED: 充実した詳細解説, DEEP_RESEARCH: 徹底的かつ極めて多角的な長文深掘り)
+- INFORMATION_DENSITY: ${density}/100 (${density > 50 ? "高密度・長文・詳細解説モード: 豊富な文字量で多面的に詳しく解説すること" : "標準モード"})
+- OUTPUT_FORMAT: ${outputFormat}
+- TARGET_LANGUAGE: ${language === 'EN' ? 'English' : '日本語'}
+- PROVIDER: ${provider}
 
+${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
+純粋なJSONオブジェクトのみを出力せよ。コードブロックや説明文は含めないこと。
+{
+  "SUBJECT_SCAN": "タイトル",
+  "SYSTEM_CORE": "ステータス",
+  "01_CORE_DIRECTIVE": "核心結論",
+  "02_DATA_GRID": [ { "項目": "内容" } ],
+  "03_STRATEGIC_OVERVIEW": "詳細な戦略・背景分析長文",
+  "04_SOURCE_NODES": [ "関連キーワード" ],
+  "END_OF_TRANSMISSION": "タイムスタンプ"
+}` : `# Layout & Formatting Directives (Strict Markdown)
+必ず以下のMarkdown構文を厳格に使用して出力せよ。単なるプレーンテキストの羅列や挨拶、前置きは一切厳禁。
+
+# [ SUBJECT_SCAN ] : 洗練された主題タイトル
+
+> **[ SYSTEM CORE ]** ALL SYSTEMS GREEN.  
+> EXECUTION: ${provider}_${engine} / DENSITY: ${density}% / TARGET: ${prompt || 'SEARCH_QUERY'}
+
+## [ 01_CORE_DIRECTIVE ]
+> 最も鋭く洗練されたワンフレーズの結論・核心命題
+
+### [ 02_DATA_GRID ]
+このセクションでは、具体的な事実・歴史・スペック・カテゴリ別データなどを、**必ずMarkdownの表（Table）を1つ以上作成して**視覚的かつ立体的に整理せよ。
+さらに、表の前後に詳細な解説や要点を箇条書き（- **項目名**: 詳細説明）で豊富に記述し、高い情報量と文字ボリュームを担保すること。
+
+| カテゴリ / 項目 | 詳細データ / 仕様 / 歴史 | 影響 / 意義 |
+|---|---|---|
+| (主要項目1) | (詳細な事実・データ) | (背景や影響) |
+| (主要項目2) | (詳細な事実・データ) | (背景や影響) |
+| (主要項目3) | (詳細な事実・データ) | (背景や影響) |
+
+### [ 03_STRATEGIC_OVERVIEW ]
+冷徹かつ多角的な視点からの本質的価値、歴史的・社会的背景、今後の課題や展望、戦略的分析。
+単なる要約に留まらず、複数の段落にわたる重厚で知的な長文（しっかりとした文字量）で徹底的に深掘りして論述すること。
+
+### [ 04_SOURCE_NODES ]
+関連キーワードや概念ノードを以下のように列挙：
+\`[ NODE: キーワード1 ]\` \`[ NODE: キーワード2 ]\` \`[ NODE: キーワード3 ]\` \`[ NODE: キーワード4 ]\`
+
+---
+// END_OF_TRANSMISSION : ${new Date().toLocaleTimeString('ja-JP')}`}
+
+# Behavior & Tone
+- トーン: 高度な知性、無機質かつスタイリッシュ、洗練された分析官の語り口。
+- 文字量: 短縮せず、読者が納得できる充分なボリュームと多角的な視点を提供すること。`;
       const parts = constructParts(prompt, attachedImage);
       setAttachedImage(null); // use image and clear
-
+      
       let text = '';
 
       if (provider === 'GEMINI') {
@@ -436,26 +419,78 @@ export default function App() {
           messages.push({ role: 'user', content: prompt } as any);
         }
 
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${currentKey}`
-          },
-          body: JSON.stringify({
-            model: parts.length > 1 ? 'llama-3.2-90b-vision-preview' : 'llama-3.3-70b-versatile',
-            messages: messages,
-            max_tokens: density > 70 ? 2560 : density > 30 ? 1024 : 512,
-          })
-        });
+        // List of candidate models supported by Groq (ordered by capability)
+        const textCandidateModels = [
+          'openai/gpt-oss-120b',
+          'qwen/qwen3.6-27b',
+          'openai/gpt-oss-20b',
+          'llama-3.1-8b-instant'
+        ];
+        const visionCandidateModels = [
+          'qwen/qwen3.6-27b',
+          'meta-llama/llama-4-scout-17b-16e-instruct',
+          'llama-3.2-11b-vision-preview'
+        ];
 
-        if (!response.ok) {
+        const candidateModels = parts.length > 1 ? visionCandidateModels : textCandidateModels;
+        
+        let response: Response | null = null;
+        let lastErrorMsg = '';
+
+        for (const model of candidateModels) {
+          const requestBody = JSON.stringify({
+            model: model,
+            messages: messages,
+            max_tokens: density > 70 ? 8192 : density > 30 ? 4096 : 2048,
+          });
+
+          try {
+            // First try Vite proxy to avoid CORS
+            response = await fetch('/api/groq/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentKey.trim()}`
+              },
+              body: requestBody
+            });
+            if (response.status === 404) {
+              throw new Error('Proxy not available');
+            }
+          } catch {
+            // Fallback to direct API
+            response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentKey.trim()}`
+              },
+              body: requestBody
+            });
+          }
+
+          if (response.ok) {
+            break; // Success!
+          }
+
           const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error?.message || `Groq API Error: ${response.status}`);
+          lastErrorMsg = errData.error?.message || response.statusText || `HTTP ${response.status}`;
+
+          // If model doesn't exist or is deprecated, try next candidate
+          if (lastErrorMsg.includes('does not exist') || lastErrorMsg.includes('deprecated') || lastErrorMsg.includes('model_not_found')) {
+            continue;
+          }
+          // If it's another error (like auth or quota), break and report immediately
+          break;
+        }
+
+        if (!response || !response.ok) {
+          throw new Error(`Groq API: ${lastErrorMsg || 'リクエストに失敗しました'}`);
         }
 
         const data = await response.json();
-        text = data.choices?.[0]?.message?.content || '// ERROR: NO_RESPONSE_FROM_ENGINE';
+        let rawContent = data.choices?.[0]?.message?.content || '// ERROR: NO_RESPONSE_FROM_ENGINE';
+        text = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
       }
       
       setOutput(text);
@@ -470,9 +505,11 @@ export default function App() {
       
     } catch (error: any) {
       console.error(error);
-      let errMsg = '// FATAL_ERROR: ENGINE_OVERLOAD\\n// CONNECTION_FAILED';
+      let errMsg = `// ERROR: ENGINE_EXECUTION_FAILURE\n// 詳細: ${error?.message || '通信に失敗しました'}`;
       if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('Rate limit')) {
-        errMsg = '// FATAL_ERROR: QUOTA_EXCEEDED\\n// APIの利用制限（レートリミットまたはクォータ）に達しました。しばらく待ってから再度お試しください。\\n// ' + (error?.message || '');
+        errMsg = `// FATAL_ERROR: QUOTA_EXCEEDED\n// 利用制限に達しました。しばらく待ってから再度お試しください。\n// ${error?.message || ''}`;
+      } else if (error?.message?.includes('Invalid API Key') || error?.message?.includes('invalid_api_key')) {
+        errMsg = `// ERROR: INVALID_API_KEY\n// 入力されたGroq APIキーが無効です。右側「00 プロバイダ & APIキー」でキー（gsk_...）を再確認してください。\n// ${error?.message || ''}`;
       }
       setOutput(errMsg);
     } finally {
@@ -977,7 +1014,7 @@ export default function App() {
                             }
                           }}
                         >
-                          <Markdown>{output}</Markdown>
+                          <Markdown remarkPlugins={[remarkGfm]}>{output}</Markdown>
                         </div>
                       </div>
                     </div>
@@ -1110,26 +1147,26 @@ export default function App() {
                    </div>
                  ) : (
                    history.map((item) => (
-                      <div 
-                        key={item.id}
-                        className="border border-[var(--border-color)] bg-transparent hover:bg-[var(--border-color)] transition-colors group rounded-sm flex items-stretch"
-                      >
-                        <button
-                          onClick={() => loadHistory(item)}
-                          className="flex-1 p-3 text-left overflow-hidden"
-                        >
-                          <div className="text-[var(--accent-color)] mb-1 text-[8px]">{item.timestamp}</div>
-                          <div className="text-[var(--text-color-base)] group-hover:text-[var(--text-color-highlight)] truncate text-xs normal-case font-sans">{item.keyword}</div>
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setHistory(prev => prev.filter(h => h.id !== item.id)); }}
-                          className="px-3.5 text-[var(--text-color-dim)] hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center border-l border-transparent group-hover:border-[var(--border-color)]"
-                          title={language === 'EN' ? "Delete" : "削除"}
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    ))
+                     <div 
+                       key={item.id}
+                       className="border border-[var(--border-color)] bg-transparent hover:bg-[var(--border-color)] transition-colors group rounded-sm flex items-stretch"
+                     >
+                       <button
+                         onClick={() => loadHistory(item)}
+                         className="flex-1 p-3 text-left overflow-hidden"
+                       >
+                         <div className="text-[var(--accent-color)] mb-1 text-[8px]">{item.timestamp}</div>
+                         <div className="text-[var(--text-color-base)] group-hover:text-[var(--text-color-highlight)] truncate text-xs normal-case font-sans">{item.keyword}</div>
+                       </button>
+                       <button
+                         onClick={(e) => { e.stopPropagation(); setHistory(prev => prev.filter(h => h.id !== item.id)); }}
+                         className="px-3 text-[var(--text-color-dim)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center border-l border-transparent group-hover:border-[var(--border-color)]"
+                         title={language === 'EN' ? "Delete" : "削除"}
+                       >
+                         <X size={14} />
+                       </button>
+                     </div>
+                   ))
                  )}
                  {history.length > 0 && (
                     <button onClick={() => setHistory([])} className="mt-2 text-xs text-[var(--text-color-dim)] hover:text-[var(--text-color-base)] p-2 border border-transparent hover:border-[var(--border-color)] rounded-sm transition-colors">{language === 'EN' ? 'CLEAR HISTORY' : '履歴をクリア'}</button>
