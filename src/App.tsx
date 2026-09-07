@@ -396,7 +396,10 @@ export default function App() {
         // List of candidate models supported by Groq (ordered by capability)
         const textCandidateModels = [
           'llama-3.3-70b-versatile',
-          'llama-3.1-8b-instant'
+          'llama3-70b-8192',
+          'llama3-8b-8192',
+          'llama-3.1-8b-instant',
+          'mixtral-8x7b-32768'
         ];
         const visionCandidateModels = [
           'llama-3.2-11b-vision-preview',
@@ -466,11 +469,11 @@ export default function App() {
           if (response) {
             const errData = await response.json().catch(() => ({}));
             lastErrorMsg = errData.error?.message || response.statusText || `HTTP ${response.status}`;
+            response = null; // Reset so loop continues to next model safely
           } else {
             lastErrorMsg = 'Network connection to Groq API failed';
           }
 
-          // Continue trying other candidate models
           continue;
         }
 
