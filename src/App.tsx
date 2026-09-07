@@ -176,20 +176,18 @@ export default function App() {
     const loadVoices = () => {
       const allVoices = window.speechSynthesis.getVoices();
       if (allVoices.length > 0) {
-        // 「あゆみ」「はるか」「一郎」「さやか」のみに厳格に限定
+        // 「あゆみ」「はるか」「一郎」「さやか」の4種類のみに厳格に限定（Google日本語などの汎用音声は除外）
         const allowedKeywords = ['あゆみ', 'ayumi', 'はるか', 'haruka', '一郎', 'ichiro', 'さやか', 'sayaka'];
         const matchedVoices = allVoices.filter(v => 
           allowedKeywords.some(keyword => v.name.toLowerCase().includes(keyword.toLowerCase()))
         );
 
-        // 該当音声があればその4種類のみをセット、万が一端末にない場合は日本語音声をフォールバック
-        const voices = matchedVoices.length > 0 
-          ? matchedVoices 
-          : allVoices.filter(v => v.lang.startsWith('ja'));
+        // 4種類のみをセット（該当がない場合でもGoogle日本語等の余計な音声は追加しない）
+        const voices = matchedVoices.length > 0 ? matchedVoices : allVoices.filter(v => allowedKeywords.some(k => v.name.toLowerCase().includes(k)));
         
         setTtsVoices(voices);
 
-        // 選択中の音声が許可リストにない場合は先頭の有効な音声（あゆみ等）にリセット
+        // 選択中の音声が4種類の中にない場合は先頭の有効な音声にリセット
         setTtsVoiceURI(prev => {
           if (prev && voices.some(v => v.voiceURI === prev)) return prev;
           return voices[0]?.voiceURI || '';
@@ -761,7 +759,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               {isSearching ? (language === 'EN' ? 'PROCESSING...' : '処理中...') : 'STABLE'}
             </span>
           </div>
-          <div className="text-[8px] text-[var(--text-color-dim)]">VER_5.2.0_{language}</div>
+          <div className="text-[8px] text-[var(--text-color-dim)]">VER_5.3.0_{language}</div>
         </div>
       </header>
 
