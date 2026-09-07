@@ -171,17 +171,18 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Load TTS voices
+  // Load TTS voices - filter for Japanese voices (一郎, 遥, 綾香, さやか, 歩み, etc.)
   useEffect(() => {
     const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        setTtsVoices(voices);
-        // Restore saved voice; only fall back to Japanese default if saved voice not found
+      const allVoices = window.speechSynthesis.getVoices();
+      if (allVoices.length > 0) {
+        // Filter Japanese voices first, fallback to all if none found
+        const jaVoices = allVoices.filter(v => v.lang.startsWith('ja') || v.lang.includes('JP') || /日本語|Ichiro|Haruka|Ayaka|Sayaka|Ayumi/i.test(v.name));
+        const filteredVoices = jaVoices.length > 0 ? jaVoices : allVoices;
+        setTtsVoices(filteredVoices);
         setTtsVoiceURI(prev => {
-          if (prev && voices.some(v => v.voiceURI === prev)) return prev;
-          const jaVoice = voices.find(v => v.lang.startsWith('ja'));
-          return jaVoice ? jaVoice.voiceURI : (voices[0]?.voiceURI || '');
+          if (prev && filteredVoices.some(v => v.voiceURI === prev)) return prev;
+          return filteredVoices[0]?.voiceURI || '';
         });
       }
     };
@@ -393,15 +394,14 @@ export default function App() {
 
         // List of candidate models supported by Groq (ordered by capability)
         const textCandidateModels = [
-          'openai/gpt-oss-120b',
-          'qwen/qwen3.6-27b',
-          'openai/gpt-oss-20b',
-          'llama-3.1-8b-instant'
+          'llama-3.3-70b-versatile',
+          'llama-3.1-8b-instant',
+          'mixtral-8x7b-32768',
+          'gemma2-9b-it'
         ];
         const visionCandidateModels = [
-          'qwen/qwen3.6-27b',
-          'meta-llama/llama-4-scout-17b-16e-instruct',
-          'llama-3.2-11b-vision-preview'
+          'llama-3.2-11b-vision-preview',
+          'llama-3.2-90b-vision-preview'
         ];
 
         const candidateModels = parts.length > 1 ? visionCandidateModels : textCandidateModels;
