@@ -1,4 +1,4 @@
-const CACHE_NAME = 'solid-studio-ai-search-v11';
+const CACHE_NAME = 'solid-studio-ai-search-v12';
 const urlsToCache = [
   './',
   './index.html'
