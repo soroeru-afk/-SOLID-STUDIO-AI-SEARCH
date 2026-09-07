@@ -414,32 +414,45 @@ export default function App() {
           const requestBody = JSON.stringify({
             model: model,
             messages: messages,
-            max_tokens: density > 70 ? 8192 : density > 30 ? 4096 : 2048,
+            max_tokens: density > 70 ? 4096 : density > 30 ? 2560 : 1536,
           });
 
+          const reqHeaders = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentKey}`
+          };
+
+          // Try Direct Groq API first (works in PWA/GitHub Pages/Standalone HTML)
           try {
-            // First try Vite proxy to avoid CORS
-            response = await fetch('/api/groq/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentKey}`
-              },
-              body: requestBody
-            });
-            if (response.status === 404) {
-              throw new Error('Proxy not available');
-            }
-          } catch {
-            // Fallback to direct API
             response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentKey}`
-              },
+              headers: reqHeaders,
               body: requestBody
             });
+            
+            // If response is not ok (e.g. 404, 405 proxy errors), throw to try fallback
+            if (!response.ok && (response.status === 404 || response.status === 405)) {
+              throw new Error(`Direct fetch status ${response.status}`);
+            }
+          } catch {
+            // Fallback: try Vite Dev Proxy
+            try {
+              response = await fetch('/api/groq/chat/completions', {
+                method: 'POST',
+                headers: reqHeaders,
+                body: requestBody
+              });
+              if (!response || !response.ok) {
+                throw new Error('Proxy failed');
+              }
+            } catch {
+              // Secondary Fallback: CORS Proxy
+              response = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions'), {
+                method: 'POST',
+                headers: reqHeaders,
+                body: requestBody
+              }).catch(() => null);
+            }
           }
 
           if (response.ok) {
