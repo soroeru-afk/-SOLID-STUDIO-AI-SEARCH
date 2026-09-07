@@ -690,7 +690,7 @@ export default function App() {
     <div className="flex flex-col h-screen bg-[var(--bg-color-base)] text-[var(--text-color-base)] text-[11px] sm:text-xs tracking-widest uppercase selection:bg-[var(--border-color-highlight)] overflow-hidden transition-colors duration-300">
       
       {/* HEADER */}
-      <header className="h-14 border-b border-[var(--border-color)] bg-[var(--bg-color-panel)] flex items-center justify-between pl-8 sm:pl-12 pr-6 sm:pr-8 shrink-0 transition-colors duration-300 relative z-20">
+      <header className="h-14 border-b border-[var(--border-color-highlight)] bg-[var(--header-bg,var(--bg-color-panel))] flex items-center justify-between pl-8 sm:pl-12 pr-6 sm:pr-8 shrink-0 transition-colors duration-300 relative z-20 shadow-md">
         <div className="flex items-center gap-4 sm:gap-8 w-full">
           <div className={`flex items-center gap-2 font-extrabold text-xs sm:text-sm tracking-[0.2em] shrink-0 ${theme === 'LIGHT' ? 'text-black' : 'text-white'}`}>
             <span className={theme === 'LIGHT' ? 'text-black/50' : 'text-white/50'}>{'>_'}</span> SOLID STUDIO AI SEARCH
