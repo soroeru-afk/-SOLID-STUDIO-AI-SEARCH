@@ -393,88 +393,54 @@ export default function App() {
           messages.push({ role: 'user', content: prompt } as any);
         }
 
-        // List of candidate models supported by Groq (ordered by capability)
-        const textCandidateModels = [
-          'llama-3.3-70b-versatile',
-          'llama3-70b-8192',
-          'llama3-8b-8192',
-          'llama-3.1-8b-instant',
-          'mixtral-8x7b-32768'
-        ];
-        const visionCandidateModels = [
-          'llama-3.2-11b-vision-preview',
-          'llama-3.2-90b-vision-preview'
-        ];
+        const selectedModel = parts.length > 1 ? 'llama-3.2-11b-vision-preview' : 'llama-3.3-70b-versatile';
+        const requestBody = JSON.stringify({
+          model: selectedModel,
+          messages: messages,
+          max_tokens: density > 70 ? 4096 : density > 30 ? 2560 : 1536,
+        });
 
-        const candidateModels = parts.length > 1 ? visionCandidateModels : textCandidateModels;
-        
+        const reqHeaders = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentKey}`
+        };
+
         let response: Response | null = null;
         let lastErrorMsg = '';
 
-        for (const model of candidateModels) {
-          const requestBody = JSON.stringify({
-            model: model,
-            messages: messages,
-            max_tokens: density > 70 ? 4096 : density > 30 ? 2560 : 1536,
+        // 1. Direct fetch to Groq API
+        try {
+          response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: reqHeaders,
+            body: requestBody
           });
+        } catch (e) {
+          response = null;
+        }
 
-          const reqHeaders = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${currentKey}`
-          };
-
-          // Strategy 1: Direct Groq API
+        // 2. Vite Dev Proxy fallback
+        if (!response || !response.ok) {
           try {
-            response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            const pRes = await fetch('/api/groq/chat/completions', {
               method: 'POST',
               headers: reqHeaders,
               body: requestBody
             });
-          } catch (e) {
-            response = null;
-          }
+            if (pRes && pRes.ok) response = pRes;
+          } catch (e) {}
+        }
 
-          // Strategy 2: If direct failed or non-200, try Vite Dev Proxy if available
-          if (!response || !response.ok) {
-            try {
-              const proxyRes = await fetch('/api/groq/chat/completions', {
-                method: 'POST',
-                headers: reqHeaders,
-                body: requestBody
-              });
-              if (proxyRes && proxyRes.ok) {
-                response = proxyRes;
-              }
-            } catch (e) {}
-          }
-
-          // Strategy 3: If still failed, try CORS Proxy fallback
-          if (!response || !response.ok) {
-            try {
-              const corsRes = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions'), {
-                method: 'POST',
-                headers: reqHeaders,
-                body: requestBody
-              });
-              if (corsRes && corsRes.ok) {
-                response = corsRes;
-              }
-            } catch (e) {}
-          }
-
-          if (response && response.ok) {
-            break; // Success!
-          }
-
-          if (response) {
-            const errData = await response.json().catch(() => ({}));
-            lastErrorMsg = errData.error?.message || response.statusText || `HTTP ${response.status}`;
-            response = null; // Reset so loop continues to next model safely
-          } else {
-            lastErrorMsg = 'Network connection to Groq API failed';
-          }
-
-          continue;
+        // 3. CORS Proxy fallback
+        if (!response || !response.ok) {
+          try {
+            const cRes = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions'), {
+              method: 'POST',
+              headers: reqHeaders,
+              body: requestBody
+            });
+            if (cRes && cRes.ok) response = cRes;
+          } catch (e) {}
         }
 
         if (!response || !response.ok) {
