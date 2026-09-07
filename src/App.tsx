@@ -396,9 +396,7 @@ export default function App() {
         // List of candidate models supported by Groq (ordered by capability)
         const textCandidateModels = [
           'llama-3.3-70b-versatile',
-          'llama-3.1-8b-instant',
-          'mixtral-8x7b-32768',
-          'gemma2-9b-it'
+          'llama-3.1-8b-instant'
         ];
         const visionCandidateModels = [
           'llama-3.2-11b-vision-preview',
