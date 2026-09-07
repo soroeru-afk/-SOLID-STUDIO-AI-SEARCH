@@ -431,16 +431,10 @@ export default function App() {
         // 1. Direct Groq API
         response = await attemptFetch('https://api.groq.com/openai/v1/chat/completions');
 
-        // 2. Vite Dev Proxy Fallback
+        // 2. Vite Dev Proxy Fallback (if running via vite dev server)
         if (!response || !response.ok) {
           const pRes = await attemptFetch('/api/groq/chat/completions');
           if (pRes && pRes.ok) response = pRes;
-        }
-
-        // 3. CORS Proxy Fallback
-        if (!response || !response.ok) {
-          const cRes = await attemptFetch('https://corsproxy.io/?' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions'));
-          if (cRes && cRes.ok) response = cRes;
         }
 
         if (!response || !response.ok) {

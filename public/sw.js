@@ -1,4 +1,4 @@
-const CACHE_NAME = 'solid-studio-ai-search-v8';
+const CACHE_NAME = 'solid-studio-ai-search-v9';
 const urlsToCache = [
   './',
   './index.html'
@@ -8,9 +8,7 @@ self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(urlsToCache))
   );
 });
 
@@ -30,22 +28,22 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Pass through non-GET requests (like POST to Groq/Gemini APIs) directly to network
+  if (event.request.method !== 'GET' || event.request.url.includes('groq.com') || event.request.url.includes('googleapis.com')) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Only cache successful network responses
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
         const responseToCache = response.clone();
         caches.open(CACHE_NAME)
-          .then(cache => {
-            cache.put(event.request, responseToCache);
-          });
+          .then(cache => cache.put(event.request, responseToCache));
         return response;
       })
-      .catch(() => {
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(event.request))
   );
 });
