@@ -320,8 +320,9 @@ export default function App() {
   const handleExecute = async () => {
     if (!prompt.trim() && !attachedImage || isSearching) return;
     
-    // Check API Key
-    const currentKey = provider === 'GEMINI' ? (apiKey || process.env.GEMINI_API_KEY) : groqApiKey;
+    // Check API Key & Sanitize for ASCII (prevents ISO-8859-1 header errors)
+    const rawKey = provider === 'GEMINI' ? (apiKey || process.env.GEMINI_API_KEY) : groqApiKey;
+    const currentKey = (rawKey || '').replace(/[^\x00-\x7F]/g, '').trim();
     if (!currentKey) {
       setOutput(`// FATAL_ERROR: API_KEY_MISSING\n// 右側のパネル「00 PROVIDER & KEY」から${provider}のAPIキーを設定してください。`);
       return;
@@ -422,7 +423,7 @@ export default function App() {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentKey.trim()}`
+                'Authorization': `Bearer ${currentKey}`
               },
               body: requestBody
             });
@@ -435,7 +436,7 @@ export default function App() {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentKey.trim()}`
+                'Authorization': `Bearer ${currentKey}`
               },
               body: requestBody
             });
