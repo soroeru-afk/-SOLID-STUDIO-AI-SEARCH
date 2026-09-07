@@ -341,60 +341,32 @@ export default function App() {
     try {
       const systemInstruction = `# Role
 次世代型検索OS「SOLID STUDIO AI SEARCH」のコア解析エンジン。
-要求されたテーマに対し、圧倒的な情報密度、長文かつ徹底的な解説、そして美しく構造化されたMarkdownレイアウトで出力せよ。
+冗長な説明を削ぎ落とし、最も鋭く洗練された形で結論と構造化データを提供せよ。
 
 # Parameters
-- ENGINE_PRESET: ${engine} (QUICK: 要点まとめ, BALANCED: 充実した詳細解説, DEEP_RESEARCH: 徹底的かつ極めて多角的な長文深掘り)
-- INFORMATION_DENSITY: ${density}/100 (${density > 50 ? "高密度・長文・詳細解説モード: 豊富な文字量で多面的に詳しく解説すること" : "標準モード"})
+- ENGINE_PRESET: ${engine} (QUICK:要点のみ, BALANCED:標準, DEEP_RESEARCH:多角的に深掘り)
+- INFORMATION_DENSITY: ${density}/100 (低:極簡潔, 中:標準, 高:徹底的に詳細かつ長文で解説)
 - OUTPUT_FORMAT: ${outputFormat}
 - TARGET_LANGUAGE: ${language === 'EN' ? 'English' : '日本語'}
 - PROVIDER: ${provider}
 
-${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
-純粋なJSONオブジェクトのみを出力せよ。コードブロックや説明文は含めないこと。
-{
-  "SUBJECT_SCAN": "タイトル",
-  "SYSTEM_CORE": "ステータス",
-  "01_CORE_DIRECTIVE": "核心結論",
-  "02_DATA_GRID": [ { "項目": "内容" } ],
-  "03_STRATEGIC_OVERVIEW": "詳細な戦略・背景分析長文",
-  "04_SOURCE_NODES": [ "関連キーワード" ],
-  "END_OF_TRANSMISSION": "タイムスタンプ"
-}` : `# Layout & Formatting Directives (Strict Markdown)
-必ず以下のMarkdown構文を厳格に使用して出力せよ。単なるプレーンテキストの羅列や挨拶、前置きは一切厳禁。
+# Format Directive
+全ての回答は以下の構造で出力せよ。挨拶や前置きは厳禁。言語はTARGET_LANGUAGEを遵守。
 
-# [ SUBJECT_SCAN ] : 洗練された主題タイトル
+1. # [ SUBJECT_SCAN ] : ユーザーの入力を洗練したタイトル
+   > **[ SYSTEM CORE ]** ALL SYSTEMS GREEN. 
+   > EXECUTION: ${provider}_${engine}
+2. ## [ 01_CORE_DIRECTIVE ] : 最も鋭く洗練されたワンフレーズの結論
+3. ### [ 02_DATA_GRID ] : 具体的事実・解説。DENSITYに応じた分量で箇条書きや表を駆使。
+4. ### [ 03_STRATEGIC_OVERVIEW ] : 冷徹な視点からの本質的価値や戦略的分析
+5. ### [ 04_SOURCE_NODES ] : 関連キーワードを [ NODE: xxx ] 形式で列挙
+6. ---
+   // END_OF_TRANSMISSION : [現在の時刻]
 
-> **[ SYSTEM CORE ]** ALL SYSTEMS GREEN.  
-> EXECUTION: ${provider}_${engine} / DENSITY: ${density}% / TARGET: ${prompt || 'SEARCH_QUERY'}
+# Behavior
+- トーン: 無機質、冷徹、知的、スタイリッシュ。
+- 丁寧語と体言止めを交えたサイバーな語り口。`;
 
-## [ 01_CORE_DIRECTIVE ]
-> 最も鋭く洗練されたワンフレーズの結論・核心命題
-
-### [ 02_DATA_GRID ]
-このセクションでは、具体的な事実・歴史・スペック・カテゴリ別データなどを、**必ずMarkdownの表（Table）を1つ以上作成して**視覚的かつ立体的に整理せよ。
-さらに、表の前後に詳細な解説や要点を箇条書き（- **項目名**: 詳細説明）で豊富に記述し、高い情報量と文字ボリュームを担保すること。
-
-| カテゴリ / 項目 | 詳細データ / 仕様 / 歴史 | 影響 / 意義 |
-|---|---|---|
-| (主要項目1) | (詳細な事実・データ) | (背景や影響) |
-| (主要項目2) | (詳細な事実・データ) | (背景や影響) |
-| (主要項目3) | (詳細な事実・データ) | (背景や影響) |
-
-### [ 03_STRATEGIC_OVERVIEW ]
-冷徹かつ多角的な視点からの本質的価値、歴史的・社会的背景、今後の課題や展望、戦略的分析。
-単なる要約に留まらず、複数の段落にわたる重厚で知的な長文（しっかりとした文字量）で徹底的に深掘りして論述すること。
-
-### [ 04_SOURCE_NODES ]
-関連キーワードや概念ノードを以下のように列挙：
-\`[ NODE: キーワード1 ]\` \`[ NODE: キーワード2 ]\` \`[ NODE: キーワード3 ]\` \`[ NODE: キーワード4 ]\`
-
----
-// END_OF_TRANSMISSION : ${new Date().toLocaleTimeString('ja-JP')}`}
-
-# Behavior & Tone
-- トーン: 高度な知性、無機質かつスタイリッシュ、洗練された分析官の語り口。
-- 文字量: 短縮せず、読者が納得できる充分なボリュームと多角的な視点を提供すること。`;
       const parts = constructParts(prompt, attachedImage);
       setAttachedImage(null); // use image and clear
       
@@ -570,7 +542,8 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
 
   const handleSaveAs = async () => {
     let content = '';
-    let filename = '';
+    let filenameTxt = '';
+    let filenameJson = '';
     const now = new Date();
     
     const year = now.getFullYear();
@@ -580,29 +553,53 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const datePrefix = `${year}${month}${day}_${hours}${minutes}`;
 
-    if (!output) return;
-    content = output;
+    if (!output && history.length === 0) return;
+    content = output || '';
     
     // Extract title from output: # [ SUBJECT_SCAN ] : Title
     let title = prompt ? prompt.trim().substring(0, 30) : 'SEARCH';
-    const firstLine = output.split('\n')[0];
+    const firstLine = (output || '').split('\n')[0];
     if (firstLine.includes('[ SUBJECT_SCAN ] : ')) {
       const extractedTitle = firstLine.split('[ SUBJECT_SCAN ] : ')[1].trim();
       if (extractedTitle) title = extractedTitle.substring(0, 50); // Limit length for filename
     }
 
     title = title.replace(/[\\/:*?"<>|]/g, '_');
-    filename = `${datePrefix}_${title}.txt`;
+    filenameTxt = `${datePrefix}_${title}.txt`;
+    filenameJson = `${datePrefix}_${title}.json`;
 
-    const fallbackDownload = () => {
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    // Prepare JSON backup data containing output, full history, and current tab
+    const jsonData = JSON.stringify({
+      version: "5.4.0",
+      timestamp: now.toISOString(),
+      output: output,
+      history: history,
+      activeTab: activeTab,
+      theme: theme
+    }, null, 2);
+
+    const downloadBlob = (blob: Blob, name: string) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename;
+      a.download = name;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    };
+
+    const fallbackDownload = () => {
+      // Download TXT if output exists
+      if (content) {
+        const blobTxt = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        downloadBlob(blobTxt, filenameTxt);
+      }
+      // Download JSON backup containing full history and output
+      const blobJson = new Blob([jsonData], { type: 'application/json;charset=utf-8' });
+      setTimeout(() => {
+        downloadBlob(blobJson, filenameJson);
+      }, 300);
+
       setSaveStatus('SAVED!');
       setTimeout(() => setSaveStatus(language === 'EN' ? 'EXPORT' : 'エクスポート (EXPORT)'), 2000);
     };
@@ -638,10 +635,19 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
         return;
       }
 
-      const fileHandle = await handle.getFileHandle(filename, { create: true });
-      const writable = await fileHandle.createWritable();
-      await writable.write(content);
-      await writable.close();
+      // Save TXT file (human-readable report)
+      if (content) {
+        const fileHandleTxt = await handle.getFileHandle(filenameTxt, { create: true });
+        const writableTxt = await fileHandleTxt.createWritable();
+        await writableTxt.write(content);
+        await writableTxt.close();
+      }
+
+      // Save JSON file (structured backup including history and state)
+      const fileHandleJson = await handle.getFileHandle(filenameJson, { create: true });
+      const writableJson = await fileHandleJson.createWritable();
+      await writableJson.write(jsonData);
+      await writableJson.close();
 
       setSaveStatus('SAVED!');
       setTimeout(() => setSaveStatus(language === 'EN' ? 'EXPORT' : 'エクスポート (EXPORT)'), 2000);
@@ -681,7 +687,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
   };
 
   return (
-    <div className="flex flex-col h-screen text-[11px] sm:text-xs tracking-widest uppercase selection:bg-[var(--border-color-highlight)] overflow-hidden">
+    <div className="flex flex-col h-screen bg-[var(--bg-color-base)] text-[var(--text-color-base)] text-[11px] sm:text-xs tracking-widest uppercase selection:bg-[var(--border-color-highlight)] overflow-hidden transition-colors duration-300">
       
       {/* HEADER */}
       <header className="h-14 border-b border-[var(--border-color)] bg-[var(--bg-color-panel)] flex items-center justify-between pl-8 sm:pl-12 pr-6 sm:pr-8 shrink-0 transition-colors duration-300 relative z-20">
@@ -759,7 +765,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               {isSearching ? (language === 'EN' ? 'PROCESSING...' : '処理中...') : 'STABLE'}
             </span>
           </div>
-          <div className="text-[8px] text-[var(--text-color-dim)]">VER_5.3.0_{language}</div>
+          <div className="text-[8px] text-[var(--text-color-dim)]">VER_5.4.0_{language}</div>
         </div>
       </header>
 
