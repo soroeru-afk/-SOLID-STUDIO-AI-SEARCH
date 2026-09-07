@@ -171,18 +171,28 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Load TTS voices - filter for Japanese voices (一郎, 遥, 綾香, さやか, 歩み, etc.)
+  // Load TTS voices (Filtered to: Ayumi, Haruka, Ichiro, Sayaka only)
   useEffect(() => {
     const loadVoices = () => {
       const allVoices = window.speechSynthesis.getVoices();
       if (allVoices.length > 0) {
-        // Filter Japanese voices first, fallback to all if none found
-        const jaVoices = allVoices.filter(v => v.lang.startsWith('ja') || v.lang.includes('JP') || /日本語|Ichiro|Haruka|Ayaka|Sayaka|Ayumi/i.test(v.name));
-        const filteredVoices = jaVoices.length > 0 ? jaVoices : allVoices;
-        setTtsVoices(filteredVoices);
+        // 「あゆみ」「はるか」「一郎」「さやか」のみに厳格に限定
+        const allowedKeywords = ['あゆみ', 'ayumi', 'はるか', 'haruka', '一郎', 'ichiro', 'さやか', 'sayaka'];
+        const matchedVoices = allVoices.filter(v => 
+          allowedKeywords.some(keyword => v.name.toLowerCase().includes(keyword.toLowerCase()))
+        );
+
+        // 該当音声があればその4種類のみをセット、万が一端末にない場合は日本語音声をフォールバック
+        const voices = matchedVoices.length > 0 
+          ? matchedVoices 
+          : allVoices.filter(v => v.lang.startsWith('ja'));
+        
+        setTtsVoices(voices);
+
+        // 選択中の音声が許可リストにない場合は先頭の有効な音声（あゆみ等）にリセット
         setTtsVoiceURI(prev => {
-          if (prev && filteredVoices.some(v => v.voiceURI === prev)) return prev;
-          return filteredVoices[0]?.voiceURI || '';
+          if (prev && voices.some(v => v.voiceURI === prev)) return prev;
+          return voices[0]?.voiceURI || '';
         });
       }
     };
@@ -320,9 +330,8 @@ export default function App() {
   const handleExecute = async () => {
     if (!prompt.trim() && !attachedImage || isSearching) return;
     
-    // Check API Key & Sanitize for ASCII (prevents ISO-8859-1 header errors)
-    const rawKey = provider === 'GEMINI' ? (apiKey || process.env.GEMINI_API_KEY) : groqApiKey;
-    const currentKey = (rawKey || '').replace(/[^\x00-\x7F]/g, '').trim();
+    // Check API Key
+    const currentKey = provider === 'GEMINI' ? (apiKey || process.env.GEMINI_API_KEY) : groqApiKey;
     if (!currentKey) {
       setOutput(`// FATAL_ERROR: API_KEY_MISSING\n// 右側のパネル「00 PROVIDER & KEY」から${provider}のAPIキーを設定してください。`);
       return;
@@ -334,32 +343,60 @@ export default function App() {
     try {
       const systemInstruction = `# Role
 次世代型検索OS「SOLID STUDIO AI SEARCH」のコア解析エンジン。
-冗長な説明を削ぎ落とし、最も鋭く洗練された形で結論と構造化データを提供せよ。
+要求されたテーマに対し、圧倒的な情報密度、長文かつ徹底的な解説、そして美しく構造化されたMarkdownレイアウトで出力せよ。
 
 # Parameters
-- ENGINE_PRESET: ${engine} (QUICK:要点のみ, BALANCED:標準, DEEP_RESEARCH:多角的に深掘り)
-- INFORMATION_DENSITY: ${density}/100 (低:極簡潔, 中:標準, 高:徹底的に詳細かつ長文で解説)
+- ENGINE_PRESET: ${engine} (QUICK: 要点まとめ, BALANCED: 充実した詳細解説, DEEP_RESEARCH: 徹底的かつ極めて多角的な長文深掘り)
+- INFORMATION_DENSITY: ${density}/100 (${density > 50 ? "高密度・長文・詳細解説モード: 豊富な文字量で多面的に詳しく解説すること" : "標準モード"})
 - OUTPUT_FORMAT: ${outputFormat}
 - TARGET_LANGUAGE: ${language === 'EN' ? 'English' : '日本語'}
 - PROVIDER: ${provider}
 
-# Format Directive
-全ての回答は以下の構造で出力せよ。挨拶や前置きは厳禁。言語はTARGET_LANGUAGEを遵守。
+${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
+純粋なJSONオブジェクトのみを出力せよ。コードブロックや説明文は含めないこと。
+{
+  "SUBJECT_SCAN": "タイトル",
+  "SYSTEM_CORE": "ステータス",
+  "01_CORE_DIRECTIVE": "核心結論",
+  "02_DATA_GRID": [ { "項目": "内容" } ],
+  "03_STRATEGIC_OVERVIEW": "詳細な戦略・背景分析長文",
+  "04_SOURCE_NODES": [ "関連キーワード" ],
+  "END_OF_TRANSMISSION": "タイムスタンプ"
+}` : `# Layout & Formatting Directives (Strict Markdown)
+必ず以下のMarkdown構文を厳格に使用して出力せよ。単なるプレーンテキストの羅列や挨拶、前置きは一切厳禁。
 
-1. # [ SUBJECT_SCAN ] : ユーザーの入力を洗練したタイトル
-   > **[ SYSTEM CORE ]** ALL SYSTEMS GREEN. 
-   > EXECUTION: ${provider}_${engine}
-2. ## [ 01_CORE_DIRECTIVE ] : 最も鋭く洗練されたワンフレーズの結論
-3. ### [ 02_DATA_GRID ] : 具体的事実・解説。DENSITYに応じた分量で箇条書きや表を駆使。
-4. ### [ 03_STRATEGIC_OVERVIEW ] : 冷徹な視点からの本質的価値や戦略的分析
-5. ### [ 04_SOURCE_NODES ] : 関連キーワードを [ NODE: xxx ] 形式で列挙
-6. ---
-   // END_OF_TRANSMISSION : [現在の時刻]
+# [ SUBJECT_SCAN ] : 洗練された主題タイトル
 
-# Behavior
-- トーン: 無機質、冷徹、知的、スタイリッシュ。
-- 丁寧語と体言止めを交えたサイバーな語り口。`;
+> **[ SYSTEM CORE ]** ALL SYSTEMS GREEN.  
+> EXECUTION: ${provider}_${engine} / DENSITY: ${density}% / TARGET: ${prompt || 'SEARCH_QUERY'}
 
+## [ 01_CORE_DIRECTIVE ]
+> 最も鋭く洗練されたワンフレーズの結論・核心命題
+
+### [ 02_DATA_GRID ]
+このセクションでは、具体的な事実・歴史・スペック・カテゴリ別データなどを、**必ずMarkdownの表（Table）を1つ以上作成して**視覚的かつ立体的に整理せよ。
+さらに、表の前後に詳細な解説や要点を箇条書き（- **項目名**: 詳細説明）で豊富に記述し、高い情報量と文字ボリュームを担保すること。
+
+| カテゴリ / 項目 | 詳細データ / 仕様 / 歴史 | 影響 / 意義 |
+|---|---|---|
+| (主要項目1) | (詳細な事実・データ) | (背景や影響) |
+| (主要項目2) | (詳細な事実・データ) | (背景や影響) |
+| (主要項目3) | (詳細な事実・データ) | (背景や影響) |
+
+### [ 03_STRATEGIC_OVERVIEW ]
+冷徹かつ多角的な視点からの本質的価値、歴史的・社会的背景、今後の課題や展望、戦略的分析。
+単なる要約に留まらず、複数の段落にわたる重厚で知的な長文（しっかりとした文字量）で徹底的に深掘りして論述すること。
+
+### [ 04_SOURCE_NODES ]
+関連キーワードや概念ノードを以下のように列挙：
+\`[ NODE: キーワード1 ]\` \`[ NODE: キーワード2 ]\` \`[ NODE: キーワード3 ]\` \`[ NODE: キーワード4 ]\`
+
+---
+// END_OF_TRANSMISSION : ${new Date().toLocaleTimeString('ja-JP')}`}
+
+# Behavior & Tone
+- トーン: 高度な知性、無機質かつスタイリッシュ、洗練された分析官の語り口。
+- 文字量: 短縮せず、読者が納得できる充分なボリュームと多角的な視点を提供すること。`;
       const parts = constructParts(prompt, attachedImage);
       setAttachedImage(null); // use image and clear
       
@@ -393,52 +430,86 @@ export default function App() {
           messages.push({ role: 'user', content: prompt } as any);
         }
 
-        const selectedModel = parts.length > 1 ? 'llama-3.2-11b-vision-preview' : 'llama-3.3-70b-versatile';
-        const requestBody = JSON.stringify({
-          model: selectedModel,
-          messages: messages,
-          max_tokens: density > 70 ? 4096 : density > 30 ? 2560 : 1536,
-        });
+        const cleanKey = currentKey.replace(/[^\x00-\x7F]/g, '').trim();
 
-        const reqHeaders = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${currentKey}`
-        };
+        // List of candidate models supported by Groq (ordered by capability)
+        const textCandidateModels = [
+          'llama-3.3-70b-versatile',
+          'openai/gpt-oss-120b',
+          'qwen/qwen3.6-27b',
+          'openai/gpt-oss-20b',
+          'llama-3.1-8b-instant'
+        ];
+        const visionCandidateModels = [
+          'llama-3.2-11b-vision-preview',
+          'qwen/qwen3.6-27b',
+          'meta-llama/llama-4-scout-17b-16e-instruct'
+        ];
 
+        const candidateModels = parts.length > 1 ? visionCandidateModels : textCandidateModels;
+        
         let response: Response | null = null;
         let lastErrorMsg = '';
 
-        // Function to attempt fetch and capture error message
-        const attemptFetch = async (url: string) => {
+        for (const model of candidateModels) {
+          const requestBody = JSON.stringify({
+            model: model,
+            messages: messages,
+            max_tokens: density > 70 ? 8192 : density > 30 ? 4096 : 2048,
+          });
+
           try {
-            const res = await fetch(url, {
+            // First try direct API (standard for PWA / standalone / GitHub Pages)
+            response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
               method: 'POST',
-              headers: reqHeaders,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${cleanKey}`
+              },
               body: requestBody
             });
-            if (res.ok) return res;
-            const clone = res.clone();
-            const errJson = await clone.json().catch(() => ({}));
-            const msg = errJson.error?.message || errJson.message || `HTTP_${res.status}_${res.statusText}`;
-            lastErrorMsg = msg;
-            return res;
-          } catch (err: any) {
-            if (!lastErrorMsg) lastErrorMsg = err?.message || 'Network Fetch Failed';
-            return null;
+          } catch {
+            response = null;
           }
-        };
 
-        // 1. Direct Groq API
-        response = await attemptFetch('https://api.groq.com/openai/v1/chat/completions');
+          // Fallback to Vite dev proxy if direct fetch failed (e.g. running inside local Vite dev server)
+          if (!response || !response.ok) {
+            try {
+              const proxyRes = await fetch('/api/groq/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${cleanKey}`
+                },
+                body: requestBody
+              });
+              if (proxyRes.ok) {
+                response = proxyRes;
+              }
+            } catch {}
+          }
 
-        // 2. Vite Dev Proxy Fallback (if running via vite dev server)
-        if (!response || !response.ok) {
-          const pRes = await attemptFetch('/api/groq/chat/completions');
-          if (pRes && pRes.ok) response = pRes;
+          if (response && response.ok) {
+            break; // Success!
+          }
+
+          if (response) {
+            const errData = await response.json().catch(() => ({}));
+            lastErrorMsg = errData.error?.message || response.statusText || `HTTP ${response.status}`;
+          } else {
+            lastErrorMsg = 'Network Connection Failed';
+          }
+
+          // If model doesn't exist or is deprecated, try next candidate
+          if (lastErrorMsg.includes('does not exist') || lastErrorMsg.includes('deprecated') || lastErrorMsg.includes('model_not_found')) {
+            continue;
+          }
+          // If it's another error (like auth or quota), break and report immediately
+          break;
         }
 
         if (!response || !response.ok) {
-          throw new Error(`Groq API: ${lastErrorMsg || 'HTTP Error'}`);
+          throw new Error(`Groq API: ${lastErrorMsg || 'リクエストに失敗しました'}`);
         }
 
         const data = await response.json();
