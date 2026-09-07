@@ -408,43 +408,43 @@ export default function App() {
         let response: Response | null = null;
         let lastErrorMsg = '';
 
-        // 1. Direct fetch to Groq API
-        try {
-          response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: reqHeaders,
-            body: requestBody
-          });
-        } catch (e) {
-          response = null;
-        }
-
-        // 2. Vite Dev Proxy fallback
-        if (!response || !response.ok) {
+        // Function to attempt fetch and capture error message
+        const attemptFetch = async (url: string) => {
           try {
-            const pRes = await fetch('/api/groq/chat/completions', {
+            const res = await fetch(url, {
               method: 'POST',
               headers: reqHeaders,
               body: requestBody
             });
-            if (pRes && pRes.ok) response = pRes;
-          } catch (e) {}
+            if (res.ok) return res;
+            const clone = res.clone();
+            const errJson = await clone.json().catch(() => ({}));
+            const msg = errJson.error?.message || errJson.message || `HTTP_${res.status}_${res.statusText}`;
+            lastErrorMsg = msg;
+            return res;
+          } catch (err: any) {
+            if (!lastErrorMsg) lastErrorMsg = err?.message || 'Network Fetch Failed';
+            return null;
+          }
+        };
+
+        // 1. Direct Groq API
+        response = await attemptFetch('https://api.groq.com/openai/v1/chat/completions');
+
+        // 2. Vite Dev Proxy Fallback
+        if (!response || !response.ok) {
+          const pRes = await attemptFetch('/api/groq/chat/completions');
+          if (pRes && pRes.ok) response = pRes;
         }
 
-        // 3. CORS Proxy fallback
+        // 3. CORS Proxy Fallback
         if (!response || !response.ok) {
-          try {
-            const cRes = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions'), {
-              method: 'POST',
-              headers: reqHeaders,
-              body: requestBody
-            });
-            if (cRes && cRes.ok) response = cRes;
-          } catch (e) {}
+          const cRes = await attemptFetch('https://corsproxy.io/?' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions'));
+          if (cRes && cRes.ok) response = cRes;
         }
 
         if (!response || !response.ok) {
-          throw new Error(`Groq API: ${lastErrorMsg || 'リクエストに失敗しました'}`);
+          throw new Error(`Groq API: ${lastErrorMsg || 'HTTP Error'}`);
         }
 
         const data = await response.json();
