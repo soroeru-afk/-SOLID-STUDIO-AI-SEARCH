@@ -215,14 +215,7 @@ export default function App() {
   }, []);
 
   // Center PWA window on load
-  useEffect(() => {
-    try {
-      const w = 1280, h = 800;
-      const left = Math.max(0, (window.screen.availWidth - w) / 2);
-      const top = Math.max(0, (window.screen.availHeight - h) / 2);
-      window.moveTo(left, top);
-    } catch {}
-  }, []);
+  
 
   // Stop TTS when output changes
   useEffect(() => {
@@ -686,10 +679,24 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = (event) => {
         try {
-            const data = JSON.parse(event.target?.result as string);
-            if (data.output) setOutput(data.output);
-            if (data.history) setHistory(data.history);
-            if (data.activeTab) setActiveTab(data.activeTab);
+            const raw = event.target?.result as string;
+            try {
+                const data = JSON.parse(raw);
+                if (data.output !== undefined) setOutput(data.output);
+                if (Array.isArray(data.history)) {
+                    setHistory(data.history);
+                    if (!data.output && data.history.length > 0) {
+                        setOutput(data.history[0].result);
+                        setPrompt(data.history[0].keyword);
+                    }
+                }
+                if (data.activeTab) setActiveTab(data.activeTab);
+                if (data.theme) setTheme(data.theme);
+            } catch {
+                // Compatibility for .txt files
+                setOutput(raw);
+                setActiveTab("SEARCH_BUFFER");
+            }
             setImportStatus('IMPORTED!');
             setTimeout(() => setImportStatus(language === 'EN' ? 'IMPORT' : 'インポート (IMPORT)'), 2000);
         } catch (err) {
@@ -700,7 +707,6 @@ export default function App() {
     reader.readAsText(file);
     e.target.value = '';
   };
-
   return (
     <div className="flex flex-col h-screen bg-[var(--bg-color-base)] text-[var(--text-color-base)] text-[11px] sm:text-xs tracking-widest uppercase selection:bg-[var(--border-color-highlight)] overflow-hidden transition-colors duration-300">
       
@@ -1238,7 +1244,7 @@ export default function App() {
          <button onClick={handleCopy} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{copyStatus === 'COPIED!' ? 'COPIED!' : (language === 'EN' ? 'COPY' : '結果をコピー (COPY)')}</span></button>
          <button onClick={() => setOutput('')} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{language === 'EN' ? 'CLEAR' : 'クリア (CLEAR)'}</span></button>
          <button onClick={() => importFileRef.current?.click()} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{importStatus === 'IMPORTED!' ? 'IMPORTED!' : importStatus === 'ERROR!' ? 'ERROR!' : (language === 'EN' ? 'IMPORT' : 'インポート (IMPORT)')}</span></button>
-         <input type="file" ref={importFileRef} accept=".json" className="hidden" onChange={handleImport} />
+         <input type="file" ref={importFileRef} accept=".json,.txt" className="hidden" onChange={handleImport} />
          <button onClick={handleSaveAs} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{saveStatus === 'SAVED!' ? 'SAVED!' : (language === 'EN' ? 'EXPORT' : 'エクスポート (EXPORT)')}</span></button>
       </footer>
     </div>
