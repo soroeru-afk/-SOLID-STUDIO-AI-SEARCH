@@ -122,8 +122,10 @@ body {
 }
 
 .bg-dots {
+  background-color: var(--bg-color-base);
   background-image: radial-gradient(circle, var(--border-color) 1px, transparent 1px);
   background-size: 24px 24px;
+  transition: background-color 0.3s ease;
 }
 
 /* Custom scrollbar for webkit */
