@@ -422,52 +422,58 @@ export default function App() {
             'Authorization': `Bearer ${currentKey}`
           };
 
-          // Try Direct Groq API first (works in PWA/GitHub Pages/Standalone HTML)
+          // Strategy 1: Direct Groq API
           try {
             response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
               method: 'POST',
               headers: reqHeaders,
               body: requestBody
             });
-            
-            // If response is not ok (e.g. 404, 405 proxy errors), throw to try fallback
-            if (!response.ok && (response.status === 404 || response.status === 405)) {
-              throw new Error(`Direct fetch status ${response.status}`);
-            }
-          } catch {
-            // Fallback: try Vite Dev Proxy
+          } catch (e) {
+            response = null;
+          }
+
+          // Strategy 2: If direct failed or non-200, try Vite Dev Proxy if available
+          if (!response || !response.ok) {
             try {
-              response = await fetch('/api/groq/chat/completions', {
+              const proxyRes = await fetch('/api/groq/chat/completions', {
                 method: 'POST',
                 headers: reqHeaders,
                 body: requestBody
               });
-              if (!response || !response.ok) {
-                throw new Error('Proxy failed');
+              if (proxyRes && proxyRes.ok) {
+                response = proxyRes;
               }
-            } catch {
-              // Secondary Fallback: CORS Proxy
-              response = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions'), {
+            } catch (e) {}
+          }
+
+          // Strategy 3: If still failed, try CORS Proxy fallback
+          if (!response || !response.ok) {
+            try {
+              const corsRes = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions'), {
                 method: 'POST',
                 headers: reqHeaders,
                 body: requestBody
-              }).catch(() => null);
-            }
+              });
+              if (corsRes && corsRes.ok) {
+                response = corsRes;
+              }
+            } catch (e) {}
           }
 
-          if (response.ok) {
+          if (response && response.ok) {
             break; // Success!
           }
 
-          const errData = await response.json().catch(() => ({}));
-          lastErrorMsg = errData.error?.message || response.statusText || `HTTP ${response.status}`;
-
-          // If model doesn't exist or is deprecated, try next candidate
-          if (lastErrorMsg.includes('does not exist') || lastErrorMsg.includes('deprecated') || lastErrorMsg.includes('model_not_found')) {
-            continue;
+          if (response) {
+            const errData = await response.json().catch(() => ({}));
+            lastErrorMsg = errData.error?.message || response.statusText || `HTTP ${response.status}`;
+          } else {
+            lastErrorMsg = 'Network connection to Groq API failed';
           }
-          // If it's another error (like auth or quota), break and report immediately
-          break;
+
+          // Continue trying other candidate models
+          continue;
         }
 
         if (!response || !response.ok) {
