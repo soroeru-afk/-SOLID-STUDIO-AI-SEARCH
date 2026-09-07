@@ -175,11 +175,15 @@ export default function App() {
     BLUE:  '#112852',
     GREEN: '#0d381c',
     RED:   '#4a1515',
-    LIGHT: '#dbeafe',
+    LIGHT: '#e2e8f0',
   };
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', HEADER_BG[theme] || '#0b1118');
+    }
   }, [theme]);
 
   // Load TTS voices (Filtered to: Ayumi, Haruka, Ichiro, Sayaka only)
