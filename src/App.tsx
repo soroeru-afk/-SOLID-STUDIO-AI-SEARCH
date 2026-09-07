@@ -167,6 +167,17 @@ export default function App() {
   const [importStatus, setImportStatus] = useState('インポート (IMPORT)');
   const importFileRef = useRef<HTMLInputElement>(null);
 
+  // Header background colors per theme (JS-driven to avoid Tailwind v4 purge)
+  const HEADER_BG: Record<Theme, string> = {
+    DARK:  '#0b1118',
+    BLACK: '#050505',
+    MID:   '#222736',
+    BLUE:  '#112852',
+    GREEN: '#0d381c',
+    RED:   '#4a1515',
+    LIGHT: '#dbeafe',
+  };
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
@@ -690,7 +701,7 @@ export default function App() {
     <div className="flex flex-col h-screen bg-[var(--bg-color-base)] text-[var(--text-color-base)] text-[11px] sm:text-xs tracking-widest uppercase selection:bg-[var(--border-color-highlight)] overflow-hidden transition-colors duration-300">
       
       {/* HEADER */}
-      <header className="h-14 border-b border-[var(--border-color-highlight)] bg-[var(--header-bg,var(--bg-color-panel))] flex items-center justify-between pl-8 sm:pl-12 pr-6 sm:pr-8 shrink-0 transition-colors duration-300 relative z-20 shadow-md">
+      <header className="h-14 border-b border-[var(--border-color-highlight)] flex items-center justify-between pl-8 sm:pl-12 pr-6 sm:pr-8 shrink-0 transition-colors duration-300 relative z-20 shadow-md" style={{ backgroundColor: HEADER_BG[theme] }}>
         <div className="flex items-center gap-4 sm:gap-8 w-full">
           <div className={`flex items-center gap-2 font-extrabold text-xs sm:text-sm tracking-[0.2em] shrink-0 ${theme === 'LIGHT' ? 'text-black' : 'text-white'}`}>
             <span className={theme === 'LIGHT' ? 'text-black/50' : 'text-white/50'}>{'>_'}</span> SOLID STUDIO AI SEARCH
