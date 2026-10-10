@@ -829,7 +829,7 @@ JSONオブジェクトのみを出力せよ。
                   onChange={(e) => setDensity(Number(e.target.value))}
                   min={1} 
                   max={100} 
-                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" 
+                  className="w-full industrial-slider" 
                 />
               </div>
             </div>
@@ -899,7 +899,7 @@ JSONオブジェクトのみを出力せよ。
                 </div>
                 <input type="range" value={ttsRate} onChange={(e) => setTtsRate(Number(e.target.value))}
                   min={0.5} max={4.0} step={0.1}
-                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" />
+                  className="w-full industrial-slider" />
               </div>
 
               {/* Volume */}
@@ -910,7 +910,7 @@ JSONオブジェクトのみを出力せよ。
                 </div>
                 <input type="range" value={ttsVolume} onChange={(e) => setTtsVolume(Number(e.target.value))}
                   min={0.0} max={1.0} step={0.05}
-                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" />
+                  className="w-full industrial-slider" />
               </div>
 
               {/* Pitch */}
@@ -921,7 +921,7 @@ JSONオブジェクトのみを出力せよ。
                 </div>
                 <input type="range" value={ttsPitch} onChange={(e) => setTtsPitch(Number(e.target.value))}
                   min={0.5} max={2.0} step={0.1}
-                  className="w-full h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" />
+                  className="w-full industrial-slider" />
               </div>
 
               {/* Voice */}
@@ -1011,7 +1011,7 @@ JSONオブジェクトのみを出力せよ。
                       min={1.0} 
                       max={2.5}
                       step={0.1} 
-                      className="w-16 h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" 
+                      className="w-16 industrial-slider" 
                     />
                  </div>
 
@@ -1025,7 +1025,7 @@ JSONオブジェクトのみを出力せよ。
                       min={0.6} 
                       max={2.0}
                       step={0.05} 
-                      className="w-16 h-1 bg-[var(--border-color)] appearance-none rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:bg-[var(--accent-color)] [&::-webkit-slider-thumb]:rounded-full cursor-pointer" 
+                      className="w-16 industrial-slider" 
                     />
                  </div>
               </div>
