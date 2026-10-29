@@ -490,10 +490,11 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
 
         // List of candidate models supported by Groq (ordered by capability)
         const textCandidateModels = [
+          'llama-3.3-70b-versatile',
           'openai/gpt-oss-120b',
           'qwen/qwen3.6-27b',
-          'openai/gpt-oss-20b',
-          'llama-3.1-8b-instant'
+          'llama-3.1-8b-instant',
+          'openai/gpt-oss-20b'
         ];
         const visionCandidateModels = [
           'qwen/qwen3.6-27b',
@@ -514,20 +515,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
           });
 
           try {
-            // First try Vite proxy to avoid CORS
-            response = await fetch('/api/groq/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentKey.trim()}`
-              },
-              body: requestBody
-            });
-            if (response.status === 404) {
-              throw new Error('Proxy not available');
-            }
-          } catch {
-            // Fallback to direct API
+            // First try direct API (standard for PWA / GitHub Pages hosting)
             response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -536,6 +524,25 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               },
               body: requestBody
             });
+          } catch {
+            response = null;
+          }
+
+          // Fallback to local Vite dev proxy if direct fetch failed (e.g. running inside local Vite dev server)
+          if (!response || !response.ok) {
+            try {
+              const proxyRes = await fetch('/api/groq/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${currentKey.trim()}`
+                },
+                body: requestBody
+              });
+              if (proxyRes.ok) {
+                response = proxyRes;
+              }
+            } catch {}
           }
 
           if (response.ok) {
@@ -888,7 +895,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             </div>
 
             <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mb-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">language === 'EN' ? '02 ENGINE' : '02 エンジン (ENGINE)'</div>
+              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">{language === 'EN' ? '02 ENGINE' : '02 エンジン (ENGINE)'}</div>
               <div className="flex flex-col gap-1">
                 {(['BALANCED', 'DEEP_RESEARCH', 'QUICK'] as EngineType[]).map((e) => (
                   <button 
@@ -907,7 +914,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             </div>
 
             <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mb-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">language === 'EN' ? '03 FORMAT' : '03 形式 (FORMAT)'</div>
+              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">{language === 'EN' ? '03 FORMAT' : '03 形式 (FORMAT)'}</div>
               <div className="flex flex-col gap-1">
                 {(['STANDARD', 'RAW_JSON', 'MINIMAL'] as OutputFormat[]).map((f) => (
                   <button 
@@ -979,7 +986,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
 
               {/* Voice */}
               <div>
-                <div className="text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">language === 'EN' ? 'VOICE' : 'ボイス (VOICE)'</div>
+                <div className="text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">{language === 'EN' ? 'VOICE' : 'ボイス (VOICE)'}</div>
                 <select value={ttsVoiceURI} onChange={(e) => setTtsVoiceURI(e.target.value)}
                   className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-1.5 py-1 text-[var(--text-color-highlight)] text-[11px] outline-none focus:border-[var(--text-color-dim)] normal-case tracking-normal cursor-pointer">
                   {ttsVoices.map(v => (
@@ -1245,7 +1252,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
              </div>
 
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
-               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px]">language === 'EN' ? '06 THEMES' : '06 テーマ (THEMES)'</div>
+               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px]">{language === 'EN' ? '06 THEMES' : '06 テーマ (THEMES)'}</div>
                <div className="grid grid-cols-2 gap-1.5">
                  {(['DARK', 'BLACK', 'MID', 'RED', 'LIGHT', 'PAPER'] as Theme[]).map((t) => (
                    <button 
@@ -1264,7 +1271,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
              </div>
 
              <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300 flex-1 flex flex-col h-1/2">
-               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px] shrink-0">language === 'EN' ? '07 HISTORY' : '07 履歴 (HISTORY)'</div>
+               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px] shrink-0">{language === 'EN' ? '07 HISTORY' : '07 履歴 (HISTORY)'}</div>
                <div className="flex flex-col gap-2 overflow-y-auto flex-1 pr-1">
                  {history.length === 0 ? (
                    <div className="py-8 text-center border border-dashed border-[var(--border-color)] text-[var(--text-color-dim)] text-[8px]">
