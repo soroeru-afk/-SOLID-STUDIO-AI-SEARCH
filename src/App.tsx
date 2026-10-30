@@ -255,14 +255,76 @@ export default function App() {
     return () => { window.speechSynthesis.cancel(); };
   }, []);
 
-  // Center PWA window on load
+  // Window position & size memory with safe centering
   useEffect(() => {
     try {
-      const w = 1280, h = 800;
-      const left = Math.max(0, (window.screen.availWidth - w) / 2);
-      const top = Math.max(0, (window.screen.availHeight - h) / 2);
-      window.moveTo(left, top);
-    } catch {}
+      const savedX = localStorage.getItem("solid_studio_win_x");
+      const savedY = localStorage.getItem("solid_studio_win_y");
+      const savedW = localStorage.getItem("solid_studio_win_w");
+      const savedH = localStorage.getItem("solid_studio_win_h");
+
+      if (savedW && savedH && savedX !== null && savedY !== null) {
+        const w = parseInt(savedW, 10);
+        const h = parseInt(savedH, 10);
+        const x = parseInt(savedX, 10);
+        const y = parseInt(savedY, 10);
+
+        if (w >= 600 && h >= 400) {
+          window.resizeTo(w, h);
+          const availLeft = (window.screen as any).availLeft || 0;
+          const availTop = (window.screen as any).availTop || 0;
+          const availW = window.screen.availWidth || 1920;
+          const availH = window.screen.availHeight || 1080;
+
+          if (x >= availLeft - 100 && x < availLeft + availW && y >= availTop - 100 && y < availTop + availH) {
+            window.moveTo(x, y);
+          }
+        }
+      } else {
+        // First launch: center on screen
+        const w = 1280, h = 850;
+        const availLeft = (window.screen as any).availLeft || 0;
+        const availTop = (window.screen as any).availTop || 0;
+        const left = Math.max(availLeft, availLeft + Math.round((window.screen.availWidth - w) / 2));
+        const top = Math.max(availTop, availTop + Math.round((window.screen.availHeight - h) / 2));
+        window.resizeTo(w, h);
+        window.moveTo(left, top);
+      }
+    } catch (e) {
+      console.warn("Window positioning restricted by browser", e);
+    }
+  }, []);
+
+  // Track window position and size on resize or before unload
+  useEffect(() => {
+    let debounceTimer: any;
+    const saveMetrics = () => {
+      try {
+        const x = window.screenX !== undefined ? window.screenX : window.screenLeft;
+        const y = window.screenY !== undefined ? window.screenY : window.screenTop;
+        const w = window.outerWidth;
+        const h = window.outerHeight;
+        if (w >= 600 && h >= 400) {
+          localStorage.setItem("solid_studio_win_x", String(x));
+          localStorage.setItem("solid_studio_win_y", String(y));
+          localStorage.setItem("solid_studio_win_w", String(w));
+          localStorage.setItem("solid_studio_win_h", String(h));
+        }
+      } catch {}
+    };
+
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(saveMetrics, 300);
+    };
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("beforeunload", saveMetrics);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("beforeunload", saveMetrics);
+      clearTimeout(debounceTimer);
+    };
   }, []);
 
   // Stop TTS when output changes
