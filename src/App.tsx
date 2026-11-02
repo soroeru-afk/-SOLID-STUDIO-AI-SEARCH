@@ -82,6 +82,18 @@ export default function App() {
   const [paperMode, setPaperMode] = useState(() => localStorage.getItem('solid_studio_paper_mode') === 'true'); // Paper mode for text area
   const [isVertical, setIsVertical] = useState(() => localStorage.getItem('solid_studio_is_vertical') === 'true'); // Vertical writing mode
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => localStorage.getItem('solid_studio_is_sidebar_open') !== 'false');
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('solid_studio_left_sidebar_width');
+    const parsed = saved ? parseInt(saved, 10) : 260;
+    return !isNaN(parsed) && parsed >= 180 && parsed <= 600 ? parsed : 260;
+  });
+  const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('solid_studio_right_sidebar_width');
+    const parsed = saved ? parseInt(saved, 10) : 260;
+    return !isNaN(parsed) && parsed >= 200 && parsed <= 600 ? parsed : 260;
+  });
+  const [isResizingLeft, setIsResizingLeft] = useState(false);
+  const [isResizingRight, setIsResizingRight] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [language, setLanguage] = useState<'JP' | 'EN'>(() => (localStorage.getItem('solid_studio_language') as 'JP' | 'EN') || 'JP');
 
@@ -409,6 +421,72 @@ export default function App() {
   useEffect(() => { localStorage.setItem('solid_studio_paper_mode', String(paperMode)); }, [paperMode]);
   useEffect(() => { localStorage.setItem('solid_studio_is_vertical', String(isVertical)); }, [isVertical]);
   useEffect(() => { localStorage.setItem('solid_studio_is_sidebar_open', String(isSidebarOpen)); }, [isSidebarOpen]);
+  useEffect(() => { localStorage.setItem('solid_studio_left_sidebar_width', String(leftSidebarWidth)); }, [leftSidebarWidth]);
+  useEffect(() => { localStorage.setItem('solid_studio_right_sidebar_width', String(rightSidebarWidth)); }, [rightSidebarWidth]);
+
+  useEffect(() => {
+    if (isResizingLeft || isResizingRight) {
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+    } else {
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    }
+    return () => {
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizingLeft, isResizingRight]);
+
+  const handleLeftResizeStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsResizingLeft(true);
+    const startX = e.clientX;
+    const startW = leftSidebarWidth;
+
+    const handlePointerMove = (ev: PointerEvent) => {
+      const delta = ev.clientX - startX;
+      const maxW = Math.min(600, Math.floor(window.innerWidth * 0.45));
+      const newW = Math.max(180, Math.min(maxW, startW + delta));
+      setLeftSidebarWidth(newW);
+    };
+
+    const handlePointerUp = () => {
+      setIsResizingLeft(false);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerUp);
+    };
+
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointercancel', handlePointerUp);
+  }, [leftSidebarWidth]);
+
+  const handleRightResizeStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsResizingRight(true);
+    const startX = e.clientX;
+    const startW = rightSidebarWidth;
+
+    const handlePointerMove = (ev: PointerEvent) => {
+      const delta = startX - ev.clientX;
+      const maxW = Math.min(600, Math.floor(window.innerWidth * 0.45));
+      const newW = Math.max(200, Math.min(maxW, startW + delta));
+      setRightSidebarWidth(newW);
+    };
+
+    const handlePointerUp = () => {
+      setIsResizingRight(false);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerUp);
+    };
+
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointercancel', handlePointerUp);
+  }, [rightSidebarWidth]);
   useEffect(() => { 
     localStorage.setItem('solid_studio_language', language); 
     setSaveTxtStatus(language === 'EN' ? 'EXPORT (TXT)' : 'テキスト保存 (TXT)');
@@ -936,8 +1014,13 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
       <div className="flex flex-1 overflow-hidden relative">
         
         {/* LEFT PANEL */}
-        <aside className={`${isSidebarOpen ? 'w-[260px] border-r' : 'w-0 overflow-hidden border-none'} border-[var(--border-color)] bg-[var(--bg-color-panel)] flex flex-col shrink-0 transition-all duration-300 md:relative absolute z-10 h-full`}>
-          <div className="p-3 flex-1 overflow-y-auto w-[260px] custom-scrollbar">
+        <aside 
+          style={{ width: isSidebarOpen ? `${leftSidebarWidth}px` : '0px' }}
+          className={`${isSidebarOpen ? 'md:border-r-0 border-r' : 'overflow-hidden border-none'} border-[var(--border-color)] bg-[var(--bg-color-panel)] flex flex-col shrink-0 ${
+            isResizingLeft ? '' : 'transition-[width] duration-150'
+          } md:relative absolute z-10 h-full`}
+        >
+          <div className="p-3 flex-1 overflow-y-auto w-full custom-scrollbar">
             
             <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
               <div className="mb-2">
@@ -1067,6 +1150,25 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
 
           </div>
         </aside>
+
+        {/* LEFT RESIZE HANDLE (INDUSTRIAL KNURL / DUAL-LINE GRIP) */}
+        {isSidebarOpen && (
+          <div
+            onPointerDown={handleLeftResizeStart}
+            onDoubleClick={() => setLeftSidebarWidth(260)}
+            title={language === 'EN' ? 'Drag to resize sidebar (Double click to reset)' : 'ドラッグで幅調整（ダブルクリックでリセット）'}
+            className={`hidden md:flex w-2 shrink-0 cursor-col-resize select-none relative z-20 flex-col justify-center items-center bg-[var(--bg-color-panel)] border-r border-[var(--border-color)] hover:bg-[var(--border-color-highlight)]/40 hover:border-[var(--border-color-highlight)] transition-colors group ${
+              isResizingLeft ? '!bg-[var(--border-color-highlight)]/60 !border-[var(--accent-color)]' : ''
+            }`}
+          >
+            {/* Industrial knurl / grip notches */}
+            <div className="flex flex-col gap-1 items-center pointer-events-none py-4">
+              <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingLeft ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
+              <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingLeft ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
+              <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingLeft ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
+            </div>
+          </div>
+        )}
 
         {/* CENTER VIEWPORT */}
         <main className="flex-1 flex flex-col min-w-0 bg-transparent relative z-0 h-full">
@@ -1264,9 +1366,31 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
            </div>
         </main>
 
+        {/* RIGHT RESIZE HANDLE (INDUSTRIAL KNURL / DUAL-LINE GRIP) */}
+        <div
+          onPointerDown={handleRightResizeStart}
+          onDoubleClick={() => setRightSidebarWidth(260)}
+          title={language === 'EN' ? 'Drag to resize sidebar (Double click to reset)' : 'ドラッグで幅調整（ダブルクリックでリセット）'}
+          className={`hidden lg:flex w-2 shrink-0 cursor-col-resize select-none relative z-20 flex-col justify-center items-center bg-[var(--bg-color-panel)] border-l border-[var(--border-color)] hover:bg-[var(--border-color-highlight)]/40 hover:border-[var(--border-color-highlight)] transition-colors group ${
+            isResizingRight ? '!bg-[var(--border-color-highlight)]/60 !border-[var(--accent-color)]' : ''
+          }`}
+        >
+          {/* Industrial knurl / grip notches */}
+          <div className="flex flex-col gap-1 items-center pointer-events-none py-4">
+            <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingRight ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
+            <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingRight ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
+            <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingRight ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
+          </div>
+        </div>
+
         {/* RIGHT PANEL - hidden on small screens unless toggled, let's keep it visible on lg */}
-        <aside className="w-[260px] border-l border-[var(--border-color)] bg-[var(--bg-color-panel)] shrink-0 transition-colors duration-300 hidden lg:flex flex-col z-20">
-          <div className="p-3 flex-1 overflow-y-auto custom-scrollbar">
+        <aside 
+          style={{ width: `${rightSidebarWidth}px` }}
+          className={`bg-[var(--bg-color-panel)] shrink-0 hidden lg:flex flex-col z-20 ${
+            isResizingRight ? '' : 'transition-colors duration-300'
+          }`}
+        >
+          <div className="p-3 flex-1 overflow-y-auto custom-scrollbar w-full">
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
                <div className="flex items-center justify-between mb-2">
                  <div className="text-[var(--text-color-dim)] font-bold text-[11px]">{language === 'EN' ? '00 PROVIDER & KEY' : '00 プロバイダ & APIキー'}</div>
