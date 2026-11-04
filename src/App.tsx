@@ -890,15 +890,16 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
 
         // List of candidate models supported by Groq (ordered by capability)
         const textCandidateModels = [
+          'llama-3.3-70b-versatile',
+          'llama-3.1-8b-instant',
           'openai/gpt-oss-120b',
           'qwen/qwen3.6-27b',
-          'openai/gpt-oss-20b',
-          'llama-3.1-8b-instant'
+          'openai/gpt-oss-20b'
         ];
         const visionCandidateModels = [
+          'llama-3.2-11b-vision-preview',
           'qwen/qwen3.6-27b',
-          'meta-llama/llama-4-scout-17b-16e-instruct',
-          'llama-3.2-11b-vision-preview'
+          'meta-llama/llama-4-scout-17b-16e-instruct'
         ];
 
         const candidateModels = parts.length > 1 ? visionCandidateModels : textCandidateModels;
@@ -914,20 +915,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
           });
 
           try {
-            // First try Vite proxy to avoid CORS
-            response = await fetch('/api/groq/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentKey.trim()}`
-              },
-              body: requestBody
-            });
-            if (response.status === 404) {
-              throw new Error('Proxy not available');
-            }
-          } catch {
-            // Fallback to direct API
+            // Direct API call first (standard for CORS-enabled Groq API on PWA / GitHub Pages)
             response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -936,6 +924,25 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               },
               body: requestBody
             });
+          } catch {
+            response = null;
+          }
+
+          // Fallback to local Vite dev proxy only if direct API failed with network/CORS error
+          if (!response || !response.ok) {
+            try {
+              const proxyRes = await fetch('/api/groq/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${currentKey.trim()}`
+                },
+                body: requestBody
+              });
+              if (proxyRes.ok) {
+                response = proxyRes;
+              }
+            } catch {}
           }
 
           if (response.ok) {
