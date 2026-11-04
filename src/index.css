@@ -107,9 +107,13 @@
 body {
   background-color: var(--bg-color-base);
   color: var(--text-color-base);
-  font-family: var(--font-mono);
+  font-family: var(--ui-font, var(--font-mono));
   overflow: hidden;
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
 }
 
 .bg-dots {
@@ -135,7 +139,7 @@ body {
 
 /* markdown styles */
 .markdown-body {
-  font-family: var(--font-mono);
+  font-family: var(--editor-font, var(--font-mono)) !important;
   line-height: 1.6;
 }
 .markdown-body h1, .markdown-body h2, .markdown-body h3 {

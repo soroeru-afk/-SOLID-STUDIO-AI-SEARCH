@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { Zap, Upload, Download, RotateCcw, MessageSquare, TerminalSquare, Loader2, Expand, Shrink, Image as ImageIcon, X, AlignLeft, AlignCenter, AlignRight, Type, ArrowDownUp } from 'lucide-react';
+import { Zap, Upload, Download, RotateCcw, MessageSquare, TerminalSquare, Loader2, Expand, Shrink, Image as ImageIcon, X, AlignLeft, AlignCenter, AlignRight, Type, ArrowDownUp, Play, Square, Volume2, Scan } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -59,6 +59,63 @@ interface ChatMessage {
   image?: string;
 }
 
+export interface VoiceProfile {
+  rate: number;
+  pitch: number;
+  volume: number;
+}
+export type VoiceProfiles = Record<string, VoiceProfile>;
+
+export function getDefaultProfileForVoice(nameOrUri: string): VoiceProfile {
+  const lower = (nameOrUri || '').toLowerCase();
+  if (lower.includes('ichiro') || lower.includes('一郎')) {
+    return { rate: 2.0, pitch: 1.0, volume: 1.0 };
+  }
+  if (lower.includes('haruka') || lower.includes('はるか')) {
+    return { rate: 1.6, pitch: 1.0, volume: 1.0 };
+  }
+  if (lower.includes('ayumi') || lower.includes('あゆみ')) {
+    return { rate: 2.0, pitch: 1.2, volume: 1.0 };
+  }
+  if (lower.includes('sayaka') || lower.includes('さやか')) {
+    return { rate: 2.0, pitch: 1.2, volume: 1.0 };
+  }
+  return { rate: 1.0, pitch: 1.0, volume: 1.0 };
+}
+
+export type FontFamilyKey = 'MEIRYO' | 'MS_GOTHIC' | 'SYSTEM_UI' | 'YU_GOTHIC_UI' | 'CONSOLAS' | 'JETBRAINS_MONO' | 'MS_MINCHO';
+
+export const FONT_FAMILY_MAP: Record<FontFamilyKey, { label: string; fontStack: string }> = {
+  MEIRYO: {
+    label: 'MEIRYO',
+    fontStack: "'Meiryo', 'メイリオ', 'Hiragino Sans', 'ヒラギノ角ゴ ProN', sans-serif",
+  },
+  MS_GOTHIC: {
+    label: 'MS GOTHIC',
+    fontStack: "'MS Gothic', 'ＭＳ ゴシック', 'Osaka-mono', monospace, sans-serif",
+  },
+  SYSTEM_UI: {
+    label: 'SYSTEM UI',
+    fontStack: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
+  YU_GOTHIC_UI: {
+    label: 'YU GOTHIC UI',
+    fontStack: "'Yu Gothic UI', 'YuGothic', '游ゴシック', 'Hiragino Kaku Gothic ProN', sans-serif",
+  },
+  CONSOLAS: {
+    label: 'CONSOLAS',
+    fontStack: "'Consolas', 'Courier New', 'Menlo', monospace",
+  },
+  JETBRAINS_MONO: {
+    label: 'JETBRAINS MONO',
+    fontStack: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+  },
+  MS_MINCHO: {
+    label: 'MS MINCHO',
+    fontStack: "'MS Mincho', 'ＭＳ 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif",
+  },
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('solid_studio_active_tab') || 'SEARCH_BUFFER');
   const [theme, setTheme] = useState<Theme>(() => {
@@ -69,6 +126,24 @@ export default function App() {
     return 'DARK';
   });
   
+  // Font settings: Editor and Interface are separate
+  const [editorFont, setEditorFont] = useState<FontFamilyKey>(() => {
+    return (localStorage.getItem('solid_studio_editor_font') as FontFamilyKey) || 'MEIRYO';
+  });
+  const [uiFont, setUiFont] = useState<FontFamilyKey>(() => {
+    return (localStorage.getItem('solid_studio_ui_font') as FontFamilyKey) || 'MEIRYO';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('solid_studio_editor_font', editorFont);
+    document.documentElement.style.setProperty('--editor-font', FONT_FAMILY_MAP[editorFont]?.fontStack || 'sans-serif');
+  }, [editorFont]);
+
+  useEffect(() => {
+    localStorage.setItem('solid_studio_ui_font', uiFont);
+    document.documentElement.style.setProperty('--ui-font', FONT_FAMILY_MAP[uiFont]?.fontStack || 'sans-serif');
+  }, [uiFont]);
+
   // Settings
   const [provider, setProvider] = useState<Provider>(() => (localStorage.getItem('solid_studio_provider') as Provider) || 'GEMINI');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('solid_studio_api_key') || '');
@@ -82,6 +157,11 @@ export default function App() {
   const [paperMode, setPaperMode] = useState(() => localStorage.getItem('solid_studio_paper_mode') === 'true'); // Paper mode for text area
   const [isVertical, setIsVertical] = useState(() => localStorage.getItem('solid_studio_is_vertical') === 'true'); // Vertical writing mode
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => localStorage.getItem('solid_studio_is_sidebar_open') !== 'false');
+  const [isSidebarsCollapsed, setIsSidebarsCollapsed] = useState(() => localStorage.getItem('solid_studio_sidebars_collapsed') === 'true');
+
+  useEffect(() => {
+    localStorage.setItem('solid_studio_sidebars_collapsed', String(isSidebarsCollapsed));
+  }, [isSidebarsCollapsed]);
   const [leftSidebarWidth, setLeftSidebarWidth] = useState<number>(() => {
     const saved = localStorage.getItem('solid_studio_left_sidebar_width');
     const parsed = saved ? parseInt(saved, 10) : 260;
@@ -187,13 +267,63 @@ export default function App() {
     }
   };
 
-  // TTS State
+  // TTS State & Voice Profiles
+  const [voiceProfiles, setVoiceProfiles] = useState<VoiceProfiles>(() => {
+    try {
+      const saved = localStorage.getItem('solid_studio_tts_voice_profiles');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Object.keys(parsed).length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to parse voice profiles', e);
+    }
+    // Default initial settings for the 4 voices (Ichiro 2.0x/1.0, Haruka 1.6x/1.0, Ayumi 2.0x/1.2, Sayaka 2.0x/1.2)
+    return {
+      ichiro: { rate: 2.0, pitch: 1.0, volume: 1.0 },
+      haruka: { rate: 1.6, pitch: 1.0, volume: 1.0 },
+      ayumi: { rate: 2.0, pitch: 1.2, volume: 1.0 },
+      sayaka: { rate: 2.0, pitch: 1.2, volume: 1.0 },
+    };
+  });
+
   const [ttsVoices, setTtsVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [ttsVoiceURI, setTtsVoiceURI] = useState(() => localStorage.getItem('tts_voice_uri') || '');
-  const [ttsRate, setTtsRate] = useState(() => Number(localStorage.getItem('tts_rate') || '1.0'));
-  const [ttsPitch, setTtsPitch] = useState(() => Number(localStorage.getItem('tts_pitch') || '1.0'));
-  const [ttsVolume, setTtsVolume] = useState(() => Number(localStorage.getItem('tts_volume') || '1.0'));
+  const [ttsRate, setTtsRate] = useState(() => {
+    const savedURI = localStorage.getItem('tts_voice_uri') || '';
+    if (savedURI) {
+      try {
+        const profiles = JSON.parse(localStorage.getItem('solid_studio_tts_voice_profiles') || '{}');
+        if (profiles[savedURI]?.rate !== undefined) return profiles[savedURI].rate;
+      } catch {}
+      return getDefaultProfileForVoice(savedURI).rate;
+    }
+    return 2.0;
+  });
+  const [ttsPitch, setTtsPitch] = useState(() => {
+    const savedURI = localStorage.getItem('tts_voice_uri') || '';
+    if (savedURI) {
+      try {
+        const profiles = JSON.parse(localStorage.getItem('solid_studio_tts_voice_profiles') || '{}');
+        if (profiles[savedURI]?.pitch !== undefined) return profiles[savedURI].pitch;
+      } catch {}
+      return getDefaultProfileForVoice(savedURI).pitch;
+    }
+    return 1.2;
+  });
+  const [ttsVolume, setTtsVolume] = useState(() => {
+    const savedURI = localStorage.getItem('tts_voice_uri') || '';
+    if (savedURI) {
+      try {
+        const profiles = JSON.parse(localStorage.getItem('solid_studio_tts_voice_profiles') || '{}');
+        if (profiles[savedURI]?.volume !== undefined) return profiles[savedURI].volume;
+      } catch {}
+      return getDefaultProfileForVoice(savedURI).volume;
+    }
+    return 1.0;
+  });
   const [ttsIsPlaying, setTtsIsPlaying] = useState(false);
+  const [resetStatus, setResetStatus] = useState(false);
   const ttsUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Search/Edit State
@@ -388,6 +518,135 @@ export default function App() {
     ttsSpeak(fromHere);
   }, [output, ttsSpeak]);
 
+  // Load voice-specific profile whenever ttsVoiceURI changes
+  useEffect(() => {
+    if (!ttsVoiceURI) return;
+    const voiceObj = ttsVoices.find(v => v.voiceURI === ttsVoiceURI);
+    const profile = voiceProfiles[ttsVoiceURI] || (voiceObj?.name ? voiceProfiles[voiceObj.name] : null);
+    if (profile) {
+      if (profile.rate !== undefined) setTtsRate(profile.rate);
+      if (profile.pitch !== undefined) setTtsPitch(profile.pitch);
+      if (profile.volume !== undefined) setTtsVolume(profile.volume);
+    } else {
+      const def = getDefaultProfileForVoice(voiceObj?.name || ttsVoiceURI);
+      setTtsRate(def.rate);
+      setTtsPitch(def.pitch);
+      setTtsVolume(def.volume);
+    }
+  }, [ttsVoiceURI, ttsVoices]);
+
+  // Persist voice profiles to localStorage
+  useEffect(() => {
+    localStorage.setItem('solid_studio_tts_voice_profiles', JSON.stringify(voiceProfiles));
+  }, [voiceProfiles]);
+
+  const handleVoiceChange = useCallback((newURI: string) => {
+    setTtsVoiceURI(newURI);
+    if (ttsIsPlaying) {
+      window.speechSynthesis.cancel();
+      setTtsIsPlaying(false);
+    }
+    const voiceObj = ttsVoices.find(v => v.voiceURI === newURI);
+    const profile = voiceProfiles[newURI] || (voiceObj?.name ? voiceProfiles[voiceObj.name] : null);
+    if (profile) {
+      setTtsRate(profile.rate ?? 1.0);
+      setTtsPitch(profile.pitch ?? 1.0);
+      setTtsVolume(profile.volume ?? 1.0);
+    } else {
+      const def = getDefaultProfileForVoice(voiceObj?.name || newURI);
+      setTtsRate(def.rate);
+      setTtsPitch(def.pitch);
+      setTtsVolume(def.volume);
+    }
+  }, [ttsVoices, voiceProfiles, ttsIsPlaying]);
+
+  const handleResetVoiceProfiles = useCallback(() => {
+    const defaultMap: VoiceProfiles = {};
+
+    // Populate for each available system voice
+    ttsVoices.forEach(v => {
+      const def = getDefaultProfileForVoice(v.name || v.voiceURI);
+      defaultMap[v.voiceURI] = def;
+      defaultMap[v.name] = def;
+    });
+
+    // Populate explicit keywords for the 4 voices
+    defaultMap['ichiro'] = { rate: 2.0, pitch: 1.0, volume: 1.0 };
+    defaultMap['haruka'] = { rate: 1.6, pitch: 1.0, volume: 1.0 };
+    defaultMap['ayumi'] = { rate: 2.0, pitch: 1.2, volume: 1.0 };
+    defaultMap['sayaka'] = { rate: 2.0, pitch: 1.2, volume: 1.0 };
+
+    setVoiceProfiles(defaultMap);
+    localStorage.setItem('solid_studio_tts_voice_profiles', JSON.stringify(defaultMap));
+
+    // Update current active voice settings immediately
+    const currentVoice = ttsVoices.find(v => v.voiceURI === ttsVoiceURI);
+    const activeDef = getDefaultProfileForVoice(currentVoice?.name || ttsVoiceURI);
+    setTtsRate(activeDef.rate);
+    setTtsPitch(activeDef.pitch);
+    setTtsVolume(activeDef.volume);
+
+    setResetStatus(true);
+    setTimeout(() => setResetStatus(false), 2000);
+  }, [ttsVoices, ttsVoiceURI]);
+
+  const handleRateChange = useCallback((newRate: number) => {
+    setTtsRate(newRate);
+    if (ttsVoiceURI) {
+      const voiceObj = ttsVoices.find(v => v.voiceURI === ttsVoiceURI);
+      const voiceName = voiceObj?.name;
+      setVoiceProfiles(prev => {
+        const next = { ...prev };
+        const updated: VoiceProfile = {
+          rate: newRate,
+          pitch: prev[ttsVoiceURI]?.pitch ?? ttsPitch,
+          volume: prev[ttsVoiceURI]?.volume ?? ttsVolume,
+        };
+        next[ttsVoiceURI] = updated;
+        if (voiceName) next[voiceName] = updated;
+        return next;
+      });
+    }
+  }, [ttsVoiceURI, ttsVoices, ttsPitch, ttsVolume]);
+
+  const handlePitchChange = useCallback((newPitch: number) => {
+    setTtsPitch(newPitch);
+    if (ttsVoiceURI) {
+      const voiceObj = ttsVoices.find(v => v.voiceURI === ttsVoiceURI);
+      const voiceName = voiceObj?.name;
+      setVoiceProfiles(prev => {
+        const next = { ...prev };
+        const updated: VoiceProfile = {
+          rate: prev[ttsVoiceURI]?.rate ?? ttsRate,
+          pitch: newPitch,
+          volume: prev[ttsVoiceURI]?.volume ?? ttsVolume,
+        };
+        next[ttsVoiceURI] = updated;
+        if (voiceName) next[voiceName] = updated;
+        return next;
+      });
+    }
+  }, [ttsVoiceURI, ttsVoices, ttsRate, ttsVolume]);
+
+  const handleVolumeChange = useCallback((newVolume: number) => {
+    setTtsVolume(newVolume);
+    if (ttsVoiceURI) {
+      const voiceObj = ttsVoices.find(v => v.voiceURI === ttsVoiceURI);
+      const voiceName = voiceObj?.name;
+      setVoiceProfiles(prev => {
+        const next = { ...prev };
+        const updated: VoiceProfile = {
+          rate: prev[ttsVoiceURI]?.rate ?? ttsRate,
+          pitch: prev[ttsVoiceURI]?.pitch ?? ttsPitch,
+          volume: newVolume,
+        };
+        next[ttsVoiceURI] = updated;
+        if (voiceName) next[voiceName] = updated;
+        return next;
+      });
+    }
+  }, [ttsVoiceURI, ttsVoices, ttsRate, ttsPitch]);
+
   // Persist history, API Key, and output
   useEffect(() => {
     localStorage.setItem('solid_studio_history', JSON.stringify(history));
@@ -487,6 +746,7 @@ export default function App() {
     document.addEventListener('pointerup', handlePointerUp);
     document.addEventListener('pointercancel', handlePointerUp);
   }, [rightSidebarWidth]);
+
   useEffect(() => { 
     localStorage.setItem('solid_studio_language', language); 
     setSaveTxtStatus(language === 'EN' ? 'EXPORT (TXT)' : 'テキスト保存 (TXT)');
@@ -630,11 +890,10 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
 
         // List of candidate models supported by Groq (ordered by capability)
         const textCandidateModels = [
-          'llama-3.3-70b-versatile',
           'openai/gpt-oss-120b',
           'qwen/qwen3.6-27b',
-          'llama-3.1-8b-instant',
-          'openai/gpt-oss-20b'
+          'openai/gpt-oss-20b',
+          'llama-3.1-8b-instant'
         ];
         const visionCandidateModels = [
           'qwen/qwen3.6-27b',
@@ -655,7 +914,20 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
           });
 
           try {
-            // First try direct API (standard for PWA / GitHub Pages hosting)
+            // First try Vite proxy to avoid CORS
+            response = await fetch('/api/groq/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentKey.trim()}`
+              },
+              body: requestBody
+            });
+            if (response.status === 404) {
+              throw new Error('Proxy not available');
+            }
+          } catch {
+            // Fallback to direct API
             response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -664,25 +936,6 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               },
               body: requestBody
             });
-          } catch {
-            response = null;
-          }
-
-          // Fallback to local Vite dev proxy if direct fetch failed (e.g. running inside local Vite dev server)
-          if (!response || !response.ok) {
-            try {
-              const proxyRes = await fetch('/api/groq/chat/completions', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${currentKey.trim()}`
-                },
-                body: requestBody
-              });
-              if (proxyRes.ok) {
-                response = proxyRes;
-              }
-            } catch {}
           }
 
           if (response.ok) {
@@ -927,7 +1180,10 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
   };
 
   return (
-    <div className="flex flex-col h-screen text-[11px] sm:text-xs tracking-widest uppercase selection:bg-[var(--border-color-highlight)] overflow-hidden">
+    <div 
+      style={{ fontFamily: FONT_FAMILY_MAP[uiFont]?.fontStack }}
+      className="flex flex-col h-screen text-[11px] sm:text-xs tracking-widest uppercase selection:bg-[var(--border-color-highlight)] overflow-hidden"
+    >
       
       {/* HEADER */}
       <header className="h-14 border-b border-[var(--border-color)] bg-[var(--bg-color-panel)] flex items-center justify-between pl-8 sm:pl-12 pr-6 sm:pr-8 shrink-0 transition-colors duration-300 relative z-20">
@@ -992,9 +1248,9 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             <button 
               onClick={toggleFullscreen}
               className="hidden sm:flex items-center justify-center border border-[var(--border-color)] bg-[var(--bg-color-card)] hover:bg-[var(--border-color)] text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] w-[30px] h-[30px] rounded-sm transition-colors ml-1 shrink-0"
-              title={language === 'EN' ? 'FULLSCREEN' : '全画面 (FULLSCREEN)'}
+              title={language === 'EN' ? 'FULLSCREEN' : 'フルスクリーン (FULLSCREEN)'}
             >
-              {isFullscreen ? <Shrink size={14} /> : <Expand size={14} />}
+              {isFullscreen ? <Shrink size={14} /> : <Scan size={14} />}
             </button>
           </div>
         </div>
@@ -1015,12 +1271,12 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
         
         {/* LEFT PANEL */}
         <aside 
-          style={{ width: isSidebarOpen ? `${leftSidebarWidth}px` : '0px' }}
-          className={`${isSidebarOpen ? 'md:border-r-0 border-r' : 'overflow-hidden border-none'} border-[var(--border-color)] bg-[var(--bg-color-panel)] flex flex-col shrink-0 ${
-            isResizingLeft ? '' : 'transition-[width] duration-150'
+          style={{ width: isSidebarsCollapsed ? '0px' : (isSidebarOpen ? `${leftSidebarWidth}px` : '0px') }}
+          className={`${!isSidebarsCollapsed && isSidebarOpen ? 'md:border-r-0 border-r' : 'overflow-hidden border-none'} border-[var(--border-color)] bg-[var(--bg-color-panel)] flex flex-col shrink-0 overflow-hidden ${
+            isResizingLeft ? '' : 'transition-[width] duration-200 ease-in-out'
           } md:relative absolute z-10 h-full`}
         >
-          <div className="p-3 flex-1 overflow-y-auto w-full custom-scrollbar">
+          <div style={{ width: `${leftSidebarWidth}px` }} className="p-3 flex-1 overflow-y-auto custom-scrollbar h-full">
             
             <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
               <div className="mb-2">
@@ -1102,7 +1358,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                   <span>{language === 'EN' ? 'SPEED' : '速度 (SPEED)'}</span>
                   <span className="text-[var(--text-color-highlight)]">{ttsRate.toFixed(1)}x</span>
                 </div>
-                <input type="range" value={ttsRate} onChange={(e) => setTtsRate(Number(e.target.value))}
+                <input type="range" value={ttsRate} onChange={(e) => handleRateChange(Number(e.target.value))}
                   min={0.5} max={4.0} step={0.1}
                   className="w-full industrial-slider" />
               </div>
@@ -1113,7 +1369,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                   <span>{language === 'EN' ? 'VOLUME' : '音量 (VOL)'}</span>
                   <span className="text-[var(--text-color-highlight)]">{Math.round(ttsVolume * 100)}%</span>
                 </div>
-                <input type="range" value={ttsVolume} onChange={(e) => setTtsVolume(Number(e.target.value))}
+                <input type="range" value={ttsVolume} onChange={(e) => handleVolumeChange(Number(e.target.value))}
                   min={0.0} max={1.0} step={0.05}
                   className="w-full industrial-slider" />
               </div>
@@ -1124,7 +1380,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                   <span>{language === 'EN' ? 'PITCH' : '音程 (PITCH)'}</span>
                   <span className="text-[var(--text-color-highlight)]">{ttsPitch.toFixed(1)}</span>
                 </div>
-                <input type="range" value={ttsPitch} onChange={(e) => setTtsPitch(Number(e.target.value))}
+                <input type="range" value={ttsPitch} onChange={(e) => handlePitchChange(Number(e.target.value))}
                   min={0.5} max={2.0} step={0.1}
                   className="w-full industrial-slider" />
               </div>
@@ -1132,12 +1388,28 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               {/* Voice */}
               <div>
                 <div className="text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">{language === 'EN' ? 'VOICE' : 'ボイス (VOICE)'}</div>
-                <select value={ttsVoiceURI} onChange={(e) => setTtsVoiceURI(e.target.value)}
+                <select value={ttsVoiceURI} onChange={(e) => handleVoiceChange(e.target.value)}
                   className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-1.5 py-1 text-[var(--text-color-highlight)] text-[11px] outline-none focus:border-[var(--text-color-dim)] normal-case tracking-normal cursor-pointer">
                   {ttsVoices.map(v => (
                     <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Reset to defaults button */}
+              <div className="mt-3 pt-2.5 border-t border-[var(--border-color)]">
+                <button
+                  onClick={handleResetVoiceProfiles}
+                  title={language === 'EN' ? 'Reset all 4 voices to default (Ichiro 2.0x, Haruka 1.6x, Ayumi 2.0x, Sayaka 2.0x)' : '4つの音声を初期設定に戻す（一郎 2.0x, はるか 1.6x, あゆみ 2.0x, さやか 2.0x）'}
+                  className="w-full py-1.5 px-2 text-center font-bold border transition-colors rounded-sm text-[10px] bg-[var(--bg-color-base)] border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <RotateCcw size={11} className={`shrink-0 ${resetStatus ? 'text-[var(--accent-color)] animate-spin' : ''}`} />
+                  <span>
+                    {resetStatus 
+                      ? (language === 'EN' ? 'RESET COMPLETE!' : '初期設定に戻しました') 
+                      : (language === 'EN' ? 'RESET VOICES TO DEFAULT' : '音声を初期設定に戻す (RESET)')}
+                  </span>
+                </button>
               </div>
 
               {output && (
@@ -1150,13 +1422,13 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
 
           </div>
         </aside>
-
-        {/* LEFT RESIZE HANDLE (INDUSTRIAL KNURL / DUAL-LINE GRIP) */}
-        {isSidebarOpen && (
+        
+        {/* LEFT RESIZE HANDLE */}
+        {!isSidebarsCollapsed && isSidebarOpen && (
           <div
             onPointerDown={handleLeftResizeStart}
             onDoubleClick={() => setLeftSidebarWidth(260)}
-            title={language === 'EN' ? 'Drag to resize sidebar (Double click to reset)' : 'ドラッグで幅調整（ダブルクリックでリセット）'}
+            title={language === 'EN' ? 'Drag to resize (Double-click to reset)' : 'ドラッグで幅調整（ダブルクリックでリセット）'}
             className={`hidden md:flex w-2 shrink-0 cursor-col-resize select-none relative z-20 flex-col justify-center items-center bg-[var(--bg-color-panel)] border-r border-[var(--border-color)] hover:bg-[var(--border-color-highlight)]/40 hover:border-[var(--border-color-highlight)] transition-colors group ${
               isResizingLeft ? '!bg-[var(--border-color-highlight)]/60 !border-[var(--accent-color)]' : ''
             }`}
@@ -1173,61 +1445,90 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
         {/* CENTER VIEWPORT */}
         <main className="flex-1 flex flex-col min-w-0 bg-transparent relative z-0 h-full">
            {/* TABS */}
-           <div className="h-10 border-b border-[var(--border-color)] flex items-stretch justify-between px-2 sm:px-4 shrink-0 bg-[var(--bg-color-panel)] transition-colors duration-300 overflow-x-auto relative z-10">
-              <div className="flex items-center gap-1 sm:gap-4 font-bold shrink-0 h-full">
+           <div className="h-10 border-b border-[var(--border-color)] flex items-center justify-between px-2 sm:px-4 shrink-0 bg-[var(--bg-color-panel)] transition-colors duration-300 overflow-x-auto relative z-10">
+              <div className="flex items-center gap-1 sm:gap-2 font-bold shrink-0">
                  <button 
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="p-1.5 text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] transition-colors rounded bg-[var(--bg-color-base)] border border-[var(--border-color)] mr-2 md:hidden h-7 flex items-center justify-center"
+                    className="p-1.5 text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] transition-colors rounded-sm bg-[var(--bg-color-base)] border border-[var(--border-color)] mr-1 md:hidden h-[30px] flex items-center justify-center cursor-pointer"
                  >
-                    {isSidebarOpen ? <Shrink size={14} /> : <Expand size={14} />}
+                    {isSidebarOpen ? <Shrink size={13} /> : <Expand size={13} />}
                  </button>
                  <button 
                     onClick={() => setActiveTab('SEARCH_BUFFER')}
-                    className={`flex items-center justify-center gap-2 h-full border-b-2 px-2 sm:px-4 transition-colors ${activeTab === 'SEARCH_BUFFER' ? 'border-[var(--text-color-highlight)] text-[var(--text-color-highlight)] bg-[var(--bg-color-card)]' : 'border-transparent text-[var(--text-color-dim)] hover:text-[var(--text-color-base)]'}`}
-                  >
-                    <TerminalSquare size={14} /> <span className="mt-1">{language === 'EN' ? 'SEARCH BUFFER' : '検索バッファ'} <span className="hidden sm:inline">{language === 'EN' ? '' : 'その箇所から読み上げ'}</span></span>
+                    className={`h-[30px] flex items-center justify-center gap-1.5 px-3 rounded-sm border text-[11px] font-bold transition-all cursor-pointer shrink-0 ${activeTab === 'SEARCH_BUFFER' ? 'border-[var(--border-color-highlight)] text-[var(--text-color-highlight)] bg-[var(--bg-color-card)] shadow-sm' : 'border-[var(--border-color)] text-[var(--text-color-dim)] bg-transparent hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-base)]'}`}
+                 >
+                    <TerminalSquare size={13} className="shrink-0" />
+                    <span>{language === 'EN' ? 'SEARCH DATA' : '検索データ'}</span>
                  </button>
                  <button 
                     onClick={() => { setEditContent(output); setActiveTab('EDIT_BUFFER'); }}
-                    className={`flex items-center justify-center gap-2 h-full border-b-2 px-2 sm:px-4 transition-colors ${activeTab === 'EDIT_BUFFER' ? 'border-[var(--text-color-highlight)] text-[var(--text-color-highlight)] bg-[var(--bg-color-card)]' : 'border-transparent text-[var(--text-color-dim)] hover:text-[var(--text-color-base)]'}`}
-                  >
-                    <MessageSquare size={14} /> <span className="mt-1">{language === 'EN' ? 'EDIT CONTENT' : '検索内容の編集'} <span className="hidden sm:inline">{language === 'EN' ? '' : 'その箇所から読み上げ'}</span></span>
+                    className={`h-[30px] flex items-center justify-center gap-1.5 px-3 rounded-sm border text-[11px] font-bold transition-all cursor-pointer shrink-0 ${activeTab === 'EDIT_BUFFER' ? 'border-[var(--border-color-highlight)] text-[var(--text-color-highlight)] bg-[var(--bg-color-card)] shadow-sm' : 'border-[var(--border-color)] text-[var(--text-color-dim)] bg-transparent hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-base)]'}`}
+                 >
+                    <MessageSquare size={13} className="shrink-0" />
+                    <span>{language === 'EN' ? 'EDIT CONTENT' : '検索内容の編集'}</span>
                  </button>
               </div>
 
               {/* TEXT FORMATTING TOOLBAR */}
-              <div className="flex items-center gap-3 shrink-0 h-full text-[var(--text-color-dim)] pr-2 hidden md:flex">
+              <div className="flex items-center gap-2.5 shrink-0 h-full text-[var(--text-color-dim)] pr-2 hidden md:flex">
                  
+                 {/* Voice Play/Stop Toggle */}
+                 <button
+                   onClick={ttsIsPlaying ? ttsStop : ttsPlayFromTop}
+                   disabled={!output}
+                   title={ttsIsPlaying ? (language === 'EN' ? 'Stop Voice (STOP)' : '音声停止 (STOP)') : (language === 'EN' ? 'Play Voice (PLAY)' : '音声再生 (PLAY)')}
+                   className={`h-[30px] flex items-center gap-1.5 px-3 rounded-sm border font-bold text-[11px] transition-all disabled:opacity-30 disabled:cursor-not-allowed shrink-0 ${
+                     ttsIsPlaying
+                       ? 'bg-[var(--active-btn-bg,var(--border-color))] border-[var(--border-color-highlight)] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm'
+                       : 'bg-[var(--bg-color-card)] border-[var(--border-color)] text-[var(--text-color-base)] hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)]'
+                   }`}
+                 >
+                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${ttsIsPlaying ? 'bg-[var(--accent-color)] animate-pulse' : 'bg-[var(--border-color-highlight)]'}`} />
+                   {ttsIsPlaying ? (
+                     <>
+                       <Square size={11} className="fill-current shrink-0" />
+                       <span>{language === 'EN' ? 'STOP' : '停止'}</span>
+                     </>
+                   ) : (
+                     <>
+                       <Play size={11} className="fill-current shrink-0" />
+                       <span>{language === 'EN' ? 'PLAY' : '再生'}</span>
+                     </>
+                   )}
+                 </button>
+
+                 <div className="w-px h-4 bg-[var(--border-color)] shrink-0"></div>
+
                  {/* Display Modes */}
-                 <div className="flex items-center gap-1 border border-[var(--border-color)] bg-[var(--bg-color-card)] p-0.5 rounded-sm text-[11px] font-bold">
-                    <button onClick={() => setPaperMode(!paperMode)} className={`px-2 py-1 rounded-sm transition-colors ${paperMode ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Toggle Paper Mode" : "ペーパーモード切替"}>
+                 <div className="h-[30px] flex items-center gap-1 border border-[var(--border-color)] bg-[var(--bg-color-card)] p-0.5 rounded-sm text-[11px] font-bold">
+                    <button onClick={() => setPaperMode(!paperMode)} className={`h-full px-2 rounded-sm flex items-center justify-center transition-colors ${paperMode ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Toggle Paper Mode" : "ペーパーモード切替"}>
                        PAPER
                     </button>
-                    <div className="w-px h-3 bg-[var(--border-color)] mx-1"></div>
-                    <button onClick={() => setIsVertical(false)} className={`px-2 py-1 rounded-sm transition-colors ${!isVertical ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Horizontal" : "横組"}>
+                    <div className="w-px h-3.5 bg-[var(--border-color)] mx-0.5"></div>
+                    <button onClick={() => setIsVertical(false)} className={`h-full px-2 rounded-sm flex items-center justify-center transition-colors ${!isVertical ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Horizontal" : "横組"}>
                        {language === 'EN' ? 'HORZ' : '横組'}
                     </button>
-                    <button onClick={() => setIsVertical(true)} className={`px-2 py-1 rounded-sm transition-colors ${isVertical ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Vertical" : "縦組"}>
+                    <button onClick={() => setIsVertical(true)} className={`h-full px-2 rounded-sm flex items-center justify-center transition-colors ${isVertical ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Vertical" : "縦組"}>
                        {language === 'EN' ? 'VERT' : '縦組'}
                     </button>
                  </div>
 
                  {/* Text Align */}
-                 <div className="flex items-center gap-1 border border-[var(--border-color)] bg-[var(--bg-color-card)] p-0.5 rounded-sm">
-                    <button onClick={() => setTextAlign('left')} className={`p-1 rounded-sm transition-colors ${textAlign === 'left' ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Align Left" : "左揃え"}>
-                       <AlignLeft size={12} />
+                 <div className="h-[30px] flex items-center gap-0.5 border border-[var(--border-color)] bg-[var(--bg-color-card)] p-0.5 rounded-sm">
+                    <button onClick={() => setTextAlign('left')} className={`h-full px-1.5 rounded-sm flex items-center justify-center transition-colors ${textAlign === 'left' ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Align Left" : "左揃え"}>
+                       <AlignLeft size={13} />
                     </button>
-                    <button onClick={() => setTextAlign('center')} className={`p-1 rounded-sm transition-colors ${textAlign === 'center' ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Align Center" : "中央揃え"}>
-                       <AlignCenter size={12} />
+                    <button onClick={() => setTextAlign('center')} className={`h-full px-1.5 rounded-sm flex items-center justify-center transition-colors ${textAlign === 'center' ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Align Center" : "中央揃え"}>
+                       <AlignCenter size={13} />
                     </button>
-                    <button onClick={() => setTextAlign('right')} className={`p-1 rounded-sm transition-colors ${textAlign === 'right' ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Align Right" : "右揃え"}>
-                       <AlignRight size={12} />
+                    <button onClick={() => setTextAlign('right')} className={`h-full px-1.5 rounded-sm flex items-center justify-center transition-colors ${textAlign === 'right' ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm' : 'hover:bg-[var(--bg-color-panel)]'}`} title={language === "EN" ? "Align Right" : "右揃え"}>
+                       <AlignRight size={13} />
                     </button>
                  </div>
 
                  {/* Line Height */}
-                 <div className="flex items-center gap-1.5 border border-[var(--border-color)] bg-[var(--bg-color-card)] px-2 py-0.5 rounded-sm" title={language === "EN" ? "Line Height" : "行間"}>
-                    <ArrowDownUp size={12} className="shrink-0" />
+                 <div className="h-[30px] flex items-center gap-1.5 border border-[var(--border-color)] bg-[var(--bg-color-card)] px-2.5 rounded-sm" title={language === "EN" ? "Line Height" : "行間"}>
+                    <ArrowDownUp size={13} className="shrink-0 text-[var(--text-color-dim)]" />
                     <input 
                       type="range" 
                       value={lineHeight}
@@ -1235,13 +1536,13 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                       min={1.0} 
                       max={2.5}
                       step={0.1} 
-                      className="w-16 industrial-slider" 
+                      className="w-16 industrial-slider cursor-pointer" 
                     />
                  </div>
 
                  {/* Font Size */}
-                 <div className="flex items-center gap-1.5 border border-[var(--border-color)] bg-[var(--bg-color-card)] px-2 py-0.5 rounded-sm" title={language === 'EN' ? 'Font Size' : '文字サイズ'}>
-                    <Type size={12} className="shrink-0" />
+                 <div className="h-[30px] flex items-center gap-1.5 border border-[var(--border-color)] bg-[var(--bg-color-card)] px-2.5 rounded-sm" title={language === 'EN' ? 'Font Size' : '文字サイズ'}>
+                    <Type size={13} className="shrink-0 text-[var(--text-color-dim)]" />
                     <input 
                       type="range" 
                       value={fontSizeRem}
@@ -1249,9 +1550,39 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                       min={0.6} 
                       max={2.0}
                       step={0.05} 
-                      className="w-16 industrial-slider" 
+                      className="w-16 industrial-slider cursor-pointer" 
                     />
                  </div>
+
+                 <div className="w-px h-4 bg-[var(--border-color)] shrink-0"></div>
+
+                 {/* Wide Reading Mode (Hide / Show both sidebars) */}
+                 <button
+                   onClick={() => setIsSidebarsCollapsed(!isSidebarsCollapsed)}
+                   title={
+                     isSidebarsCollapsed
+                       ? (language === 'EN' ? 'Show Sidebars (Normal Mode)' : '両サイドバーを表示（通常表示に戻す）')
+                       : (language === 'EN' ? 'Hide Sidebars (Wide Reading Mode)' : '両サイドバーを格納（読む範囲を広げる）')
+                   }
+                   className={`h-[30px] flex items-center gap-1.5 px-3 rounded-sm border font-bold text-[11px] transition-all shrink-0 cursor-pointer ${
+                     isSidebarsCollapsed
+                       ? 'bg-[var(--active-btn-bg,var(--accent-color))] border-[var(--border-color-highlight)] !text-white shadow-sm'
+                       : 'bg-[var(--bg-color-card)] border-[var(--border-color)] text-[var(--text-color-base)] hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)]'
+                   }`}
+                 >
+                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${isSidebarsCollapsed ? 'bg-white shadow-[0_0_4px_rgba(255,255,255,0.8)]' : 'bg-[var(--border-color-highlight)]'}`} />
+                   {isSidebarsCollapsed ? (
+                     <>
+                       <Shrink size={12} className="shrink-0 !text-white" />
+                       <span className="!text-white font-bold">{language === 'EN' ? 'WIDE: ON' : 'ワイド中'}</span>
+                     </>
+                   ) : (
+                     <>
+                       <Expand size={12} className="shrink-0" />
+                       <span>{language === 'EN' ? 'WIDE' : 'ワイド'}</span>
+                     </>
+                   )}
+                 </button>
               </div>
            </div>
 
@@ -1290,6 +1621,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                         <div
                           className={`markdown-body break-words normal-case ${isVertical ? 'h-full min-w-full' : ''}`}
                           style={{ 
+                            fontFamily: FONT_FAMILY_MAP[editorFont]?.fontStack,
                             fontSize: `${fontSizeRem}rem`,
                             lineHeight: lineHeight,
                             textAlign: textAlign,
@@ -1322,8 +1654,9 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                  <div className="flex flex-col h-full min-h-0">
                     <textarea 
                       ref={setEditScrollContainerRef}
-                      className="flex-1 w-full min-h-0 bg-transparent p-4 sm:p-8 pb-4 font-mono text-[var(--text-color-highlight)] outline-none resize-none custom-scrollbar"
+                      className="flex-1 w-full min-h-0 bg-transparent p-4 sm:p-8 pb-4 text-[var(--text-color-highlight)] outline-none resize-none custom-scrollbar"
                       style={{ 
+                        fontFamily: FONT_FAMILY_MAP[editorFont]?.fontStack,
                         fontSize: `${fontSizeRem}rem`,
                         writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
                         lineHeight: lineHeight,
@@ -1338,13 +1671,13 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                         onClick={() => { setEditContent(output); setActiveTab('SEARCH_BUFFER'); }}
                         className="text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] transition-colors px-2 sm:px-4 py-2 font-bold text-[11px] sm:text-xs"
                       >
-                        language === 'EN' ? 'CANCEL' : 'キャンセル (CANCEL)'
+                        {language === 'EN' ? 'CANCEL' : 'キャンセル (CANCEL)'}
                       </button>
                       <button 
                         onClick={() => { setOutput(editContent); setActiveTab('SEARCH_BUFFER'); }}
                         className="bg-[var(--accent-color)] text-[#000000] px-4 sm:px-6 py-2 rounded-sm font-bold transition-all hover:brightness-110 text-[11px] sm:text-xs tracking-wider uppercase shadow-lg border border-transparent hover:border-[#ffffff55]"
                       >
-                        language === 'EN' ? 'SAVE EDITS' : '編集内容の保存 (SAVE)'
+                        {language === 'EN' ? 'SAVE EDITS' : '編集内容の保存 (SAVE)'}
                       </button>
                     </div>
                  </div>
@@ -1366,31 +1699,33 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
            </div>
         </main>
 
-        {/* RIGHT RESIZE HANDLE (INDUSTRIAL KNURL / DUAL-LINE GRIP) */}
-        <div
-          onPointerDown={handleRightResizeStart}
-          onDoubleClick={() => setRightSidebarWidth(260)}
-          title={language === 'EN' ? 'Drag to resize sidebar (Double click to reset)' : 'ドラッグで幅調整（ダブルクリックでリセット）'}
-          className={`hidden lg:flex w-2 shrink-0 cursor-col-resize select-none relative z-20 flex-col justify-center items-center bg-[var(--bg-color-panel)] border-l border-[var(--border-color)] hover:bg-[var(--border-color-highlight)]/40 hover:border-[var(--border-color-highlight)] transition-colors group ${
-            isResizingRight ? '!bg-[var(--border-color-highlight)]/60 !border-[var(--accent-color)]' : ''
-          }`}
-        >
-          {/* Industrial knurl / grip notches */}
-          <div className="flex flex-col gap-1 items-center pointer-events-none py-4">
-            <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingRight ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
-            <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingRight ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
-            <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingRight ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
+        {/* RIGHT RESIZE HANDLE */}
+        {!isSidebarsCollapsed && (
+          <div
+            onPointerDown={handleRightResizeStart}
+            onDoubleClick={() => setRightSidebarWidth(260)}
+            title={language === 'EN' ? 'Drag to resize (Double-click to reset)' : 'ドラッグで幅調整（ダブルクリックでリセット）'}
+            className={`hidden lg:flex w-2 shrink-0 cursor-col-resize select-none relative z-20 flex-col justify-center items-center bg-[var(--bg-color-panel)] border-l border-[var(--border-color)] hover:bg-[var(--border-color-highlight)]/40 hover:border-[var(--border-color-highlight)] transition-colors group ${
+              isResizingRight ? '!bg-[var(--border-color-highlight)]/60 !border-[var(--accent-color)]' : ''
+            }`}
+          >
+            {/* Industrial knurl / grip notches */}
+            <div className="flex flex-col gap-1 items-center pointer-events-none py-4">
+              <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingRight ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
+              <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingRight ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
+              <div className={`w-[2px] h-2.5 rounded-[0.5px] transition-colors ${isResizingRight ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color-highlight)] group-hover:bg-[var(--accent-color)]'}`} />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* RIGHT PANEL - hidden on small screens unless toggled, let's keep it visible on lg */}
         <aside 
-          style={{ width: `${rightSidebarWidth}px` }}
-          className={`bg-[var(--bg-color-panel)] shrink-0 hidden lg:flex flex-col z-20 ${
-            isResizingRight ? '' : 'transition-colors duration-300'
-          }`}
+          style={{ width: isSidebarsCollapsed ? '0px' : `${rightSidebarWidth}px` }}
+          className={`bg-[var(--bg-color-panel)] shrink-0 hidden lg:flex flex-col z-20 overflow-hidden ${
+            isSidebarsCollapsed ? 'border-none' : 'border-l border-[var(--border-color)]'
+          } ${isResizingRight ? '' : 'transition-[width] duration-200 ease-in-out'}`}
         >
-          <div className="p-3 flex-1 overflow-y-auto custom-scrollbar w-full">
+          <div style={{ width: `${rightSidebarWidth}px` }} className="p-3 flex-1 overflow-y-auto custom-scrollbar h-full">
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
                <div className="flex items-center justify-between mb-2">
                  <div className="text-[var(--text-color-dim)] font-bold text-[11px]">{language === 'EN' ? '00 PROVIDER & KEY' : '00 プロバイダ & APIキー'}</div>
@@ -1456,8 +1791,44 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                </div>
              </div>
 
+             <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
+               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px]">{language === 'EN' ? ':: 07 FONT FAMILY' : ':: 07 フォント設定 (FONT FAMILY)'}</div>
+               
+               {/* Editor / Buffer font */}
+               <div className="mb-3">
+                 <div className="text-[var(--text-color-dim)] font-bold mb-1.5 text-[10px]">{language === 'EN' ? 'EDITOR / BUFFER' : 'エディター・本文 (EDITOR / BUFFER)'}</div>
+                 <select 
+                   value={editorFont} 
+                   onChange={(e) => setEditorFont(e.target.value as FontFamilyKey)}
+                   className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1.5 text-[var(--text-color-highlight)] text-[11px] font-bold outline-none focus:border-[var(--text-color-dim)] tracking-wider cursor-pointer"
+                 >
+                   {(['MEIRYO', 'MS_GOTHIC', 'SYSTEM_UI', 'YU_GOTHIC_UI', 'CONSOLAS', 'JETBRAINS_MONO', 'MS_MINCHO'] as FontFamilyKey[]).map((fKey) => (
+                     <option key={fKey} value={fKey} className="bg-[var(--bg-color-card)] text-[var(--text-color-highlight)]">
+                       {FONT_FAMILY_MAP[fKey].label}
+                     </option>
+                   ))}
+                 </select>
+               </div>
+
+               {/* Interface / UI font */}
+               <div>
+                 <div className="text-[var(--text-color-dim)] font-bold mb-1.5 text-[10px]">{language === 'EN' ? 'INTERFACE / UI' : 'インターフェース文字 (INTERFACE / UI)'}</div>
+                 <select 
+                   value={uiFont} 
+                   onChange={(e) => setUiFont(e.target.value as FontFamilyKey)}
+                   className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1.5 text-[var(--text-color-highlight)] text-[11px] font-bold outline-none focus:border-[var(--text-color-dim)] tracking-wider cursor-pointer"
+                 >
+                   {(['MEIRYO', 'MS_GOTHIC', 'SYSTEM_UI', 'YU_GOTHIC_UI', 'CONSOLAS', 'JETBRAINS_MONO', 'MS_MINCHO'] as FontFamilyKey[]).map((fKey) => (
+                     <option key={fKey} value={fKey} className="bg-[var(--bg-color-card)] text-[var(--text-color-highlight)]">
+                       {FONT_FAMILY_MAP[fKey].label}
+                     </option>
+                   ))}
+                 </select>
+               </div>
+             </div>
+
              <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300 flex-1 flex flex-col h-1/2">
-               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px] shrink-0">{language === 'EN' ? '07 HISTORY' : '07 履歴 (HISTORY)'}</div>
+               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px] shrink-0">{language === 'EN' ? '08 HISTORY' : '08 履歴 (HISTORY)'}</div>
                <div className="flex flex-col gap-2 overflow-y-auto flex-1 pr-1">
                  {history.length === 0 ? (
                    <div className="py-8 text-center border border-dashed border-[var(--border-color)] text-[var(--text-color-dim)] text-[8px]">
@@ -1487,16 +1858,16 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                    ))
                  )}
                  {history.length > 0 && (
-                    <button onClick={() => setHistory([])} className="mt-2 text-xs text-[var(--text-color-dim)] hover:text-[var(--text-color-base)] p-2 border border-transparent hover:border-[var(--border-color)] rounded-sm transition-colors">language === 'EN' ? 'CLEAR HISTORY' : '履歴をクリア'</button>
+                    <button onClick={() => setHistory([])} className="mt-2 text-xs text-[var(--text-color-dim)] hover:text-[var(--text-color-base)] p-2 border border-transparent hover:border-[var(--border-color)] rounded-sm transition-colors">{language === 'EN' ? 'CLEAR HISTORY' : '履歴をクリア'}</button>
                  )}
                </div>
              </div>
              
              <div className="mt-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
                <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px] flex justify-between items-center">
-                 <span>{language === 'EN' ? '08 DRIVE (SAVE LOCATION)' : '08 DRIVE 保存先'}</span>
+                 <span>{language === 'EN' ? '09 DRIVE (SAVE LOCATION)' : '09 DRIVE 保存先'}</span>
                  {driveDirName !== '未設定' && (
-                   <button onClick={handleResetDrive} className="text-[var(--accent-color)] hover:text-[#ff4444] hover:underline cursor-pointer">language === 'EN' ? 'CHANGE (CLEAR)' : '変更(CLEAR)'</button>
+                   <button onClick={handleResetDrive} className="text-[var(--accent-color)] hover:text-[#ff4444] hover:underline cursor-pointer">{language === 'EN' ? 'CHANGE (CLEAR)' : '変更(CLEAR)'}</button>
                  )}
                </div>
                <div className="text-[11px] text-[var(--text-color-base)] truncate bg-[var(--bg-color-base)] border border-[var(--border-color)] p-2 rounded-sm text-center">
@@ -1511,7 +1882,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
       {/* FOOTER */}
       <footer className="h-10 border-t border-[var(--border-color)] bg-[var(--bg-color-panel)] flex items-stretch shrink-0 text-[var(--text-color-dim)] font-bold divide-x divide-[var(--border-color)] transition-colors duration-300 overflow-x-auto whitespace-nowrap relative z-20">
          <button onClick={handleCopy} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{copyStatus === 'COPIED!' ? 'COPIED!' : (language === 'EN' ? 'COPY' : '結果をコピー (COPY)')}</span></button>
-         <button onClick={() => setOutput('')} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">language === 'EN' ? 'CLEAR' : 'クリア (CLEAR)'</span></button>
+         <button onClick={() => setOutput('')} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{language === 'EN' ? 'CLEAR' : 'クリア (CLEAR)'}</span></button>
          <button onClick={() => importFileRef.current?.click()} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{importStatus === 'IMPORTED!' ? 'IMPORTED!' : importStatus === 'ERROR!' ? 'ERROR!' : (language === 'EN' ? 'IMPORT' : 'インポート (IMPORT)')}</span></button>
          <input type="file" ref={importFileRef} accept=".json,.txt" className="hidden" onChange={handleImport} />
          <button onClick={handleExportTxt} className="px-4 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{saveTxtStatus}</span></button>
