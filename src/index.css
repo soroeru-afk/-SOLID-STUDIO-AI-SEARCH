@@ -17,6 +17,10 @@
   --text-color-dim: #64748b; /* slate-500 */
   --accent-color: #ffffff; /* industrial crisp white */
   --accent-color-hover: #cbd5e1;
+  --accent-text-color: #06080b;
+  --active-btn-bg: #1e2636; /* 選択中ボタン: 控えめなダークスレート (派手にならない設定) */
+  --active-btn-subtle-bg: #1e2636;
+  --active-text-color: #ffffff;
 }
 
 [data-theme="BLACK"] {
@@ -30,6 +34,10 @@
   --text-color-dim: #555555;
   --accent-color: #888888;
   --accent-color-hover: #aaaaaa;
+  --accent-text-color: #ffffff;
+  --active-btn-bg: #242424; /* 選択中ボタン: 控えめなダークグレー */
+  --active-btn-subtle-bg: #242424;
+  --active-text-color: #ffffff;
 }
 
 [data-theme="MID"] {
@@ -43,6 +51,10 @@
   --text-color-dim: #697187;
   --accent-color: #8b96b8;
   --accent-color-hover: #b0b9d1;
+  --accent-text-color: #ffffff;
+  --active-btn-bg: #2d3546; /* 選択中ボタン: 控えめなネイビーグレー */
+  --active-btn-subtle-bg: #2d3546;
+  --active-text-color: #ffffff;
 }
 
 [data-theme="RED"] {
@@ -56,6 +68,10 @@
   --text-color-dim: #915151;
   --accent-color: #b55757;
   --accent-color-hover: #d67a7a;
+  --accent-text-color: #ffffff;
+  --active-btn-bg: #2e1818; /* 選択中ボタン: 控えめなダークレッドブラウン */
+  --active-btn-subtle-bg: #2e1818;
+  --active-text-color: #ffffff;
 }
 
 [data-theme="LIGHT"] {
@@ -69,8 +85,11 @@
   --text-color-dim: #475569;
   --accent-color: #000000;
   --accent-color-hover: #333333;
+  --accent-text-color: #ffffff;
   --scrollbar-thumb: #cbd5e1;
   --scrollbar-thumb-hover: #94a3b8;
+  --active-btn-bg: #526071; /* 選択中ボタン: 控えめなスレートグレー */
+  --active-btn-subtle-bg: #526071;
   --active-text-color: #ffffff;
 }
 
@@ -78,28 +97,35 @@
   --bg-color-base: #F2EFE6; /* アプリ全体の一番背面のサンドベージュ */
   --bg-color-panel: #EBE4D5; /* ヘッダー・見出し・パネル背景の落ち着いたトープベージュ */
   --bg-color-card: #ffffff; /* パネル・サイドバー本体、カード、入力エリアの白 */
-  --border-color: #e5ded2; /* 通常ボタン枠・淡いサンド系ボーダー */
-  --border-color-highlight: #cbc3b4; /* 引き締まったエッジボーダー */
-  --text-color-base: #5e5447; /* サブテキスト: 濃いめのアースブラウン */
-  --text-color-highlight: #2d241e; /* メインテキスト: くっきりとしたダークチャコールブラウン */
-  --text-color-dim: #8c8071; /* 補助テキスト: サンドトープ */
-  --accent-color: #d9532f; /* テラコッタレッド */
+  --border-color: #b8a793; /* K-NAVIGATOR同等のくっきり鮮明なインダストリアル細線ボーダー */
+  --border-color-highlight: #94826d; /* 明瞭なエッジボーダー・区分線 */
+  --text-color-base: #4a4034; /* サブテキスト: くっきり濃いめのアースブラウン */
+  --text-color-highlight: #221a14; /* メインテキスト: 鮮明なダークチャコールブラウン */
+  --text-color-dim: #5c5043; /* 補助テキスト・見出し・ラベル: 薄くならずしっかりと読めるダークトープブラウン */
+  --accent-color: #d9532f; /* オレンジ (実行ボタンや赤枠箇所のアクセント) */
   --accent-color-hover: #c04523;
-  --active-btn-bg: #d9532f; /* 選択中ボタン: テラコッタレッド */
+  --accent-text-color: #ffffff;
+  --active-btn-bg: #d9532f; /* 選択中ボタン（赤枠の箇所）: オレンジ */
+  --active-btn-subtle-bg: #685946; /* JPやProvider Key用: そのままのゴールドブラウン */
   --active-text-color: #ffffff; /* 選択中ボタンの白文字 */
-  --scrollbar-thumb: #d0c8b8;
-  --scrollbar-thumb-hover: #b0a693;
+  --scrollbar-thumb: #b8a793;
+  --scrollbar-thumb-hover: #94826d;
 }
 
 .paper-mode {
   --bg-color-card: #ffffff !important;
   --bg-color-panel: #EBE4D5 !important;
-  --border-color: #e5ded2 !important;
-  --border-color-highlight: #cbc3b4 !important;
-  --text-color-base: #5e5447 !important;
-  --text-color-highlight: #2d241e !important;
-  --text-color-dim: #8c8071 !important;
+  --border-color: #b8a793 !important;
+  --border-color-highlight: #94826d !important;
+  --text-color-base: #4a4034 !important;
+  --text-color-highlight: #221a14 !important;
+  --text-color-dim: #5c5043 !important;
   --accent-color: #d9532f !important;
+  --accent-color-hover: #c04523 !important;
+  --accent-text-color: #ffffff !important;
+  --active-btn-bg: #d9532f !important;
+  --active-btn-subtle-bg: #685946 !important;
+  --active-text-color: #ffffff !important;
   background-color: var(--bg-color-card);
   color: var(--text-color-highlight);
 }

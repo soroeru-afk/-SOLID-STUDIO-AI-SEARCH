@@ -897,9 +897,9 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
           'openai/gpt-oss-20b'
         ];
         const visionCandidateModels = [
-          'llama-3.2-11b-vision-preview',
           'qwen/qwen3.6-27b',
-          'meta-llama/llama-4-scout-17b-16e-instruct'
+          'meta-llama/llama-4-scout-17b-16e-instruct',
+          'llama-3.2-11b-vision-preview'
         ];
 
         const candidateModels = parts.length > 1 ? visionCandidateModels : textCandidateModels;
@@ -1200,8 +1200,8 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             <span className="text-[9px] font-mono tracking-normal px-1.5 py-0.5 rounded bg-[var(--border-color)] text-[var(--accent-color)] border border-[var(--border-color-highlight)] font-semibold">v5.4</span>
           </div>
           
-          <div className="flex items-center gap-2 ml-auto flex-1 max-w-2xl relative">
-            <div className="flex items-center bg-[var(--bg-color-card)] border border-[var(--border-color)] rounded-sm px-3 py-1.5 w-full text-[var(--text-color-dim)] focus-within:border-[var(--text-color-dim)] transition-colors relative z-30">
+          <div className="flex items-center gap-2 ml-auto flex-1 max-w-4xl xl:max-w-5xl relative">
+            <div className="flex items-center bg-[var(--bg-color-card)] border border-[var(--border-color)] rounded-sm px-3 py-1.5 w-full min-w-0 text-[var(--text-color-dim)] focus-within:border-[var(--text-color-dim)] transition-colors relative z-30">
               <Zap size={12} className="mr-2 text-[var(--accent-color)] shrink-0" />
               <input 
                 type="text" 
@@ -1225,7 +1225,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             <button 
               onClick={handleExecute}
               disabled={isSearching}
-              className="bg-[var(--bg-color-card)] border border-[var(--border-color-highlight)] hover:bg-[var(--border-color)] text-[var(--text-color-highlight)] hover:text-[var(--active-text-color,var(--text-color-highlight))] px-4 py-1.5 transition-colors disabled:opacity-50 shrink-0 font-bold rounded-sm shadow-sm"
+              className="bg-[var(--active-btn-bg,var(--border-color))] border border-[var(--border-color-highlight)] hover:brightness-110 text-[var(--active-text-color,#ffffff)] px-4 sm:px-5 py-1.5 transition-all disabled:opacity-50 shrink-0 font-bold rounded-sm shadow-sm cursor-pointer"
             >
               {language === 'EN' ? 'RUN' : '実行'}
             </button>
@@ -1240,13 +1240,13 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             <div className="hidden sm:flex border border-[var(--border-color)] bg-[var(--bg-color-card)] p-0.5 rounded-sm h-[30px] text-[10px] font-bold ml-2 shrink-0">
               <button 
                 onClick={() => setLanguage('EN')}
-                className={`px-3 h-full rounded-sm flex items-center justify-center transition-colors ${language === 'EN' ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))]' : 'text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)]'}`}
+                className={`px-3 h-full rounded-sm flex items-center justify-center transition-colors ${language === 'EN' ? 'bg-[var(--active-btn-subtle-bg,var(--active-btn-bg))] text-[var(--active-text-color,var(--text-color-highlight))]' : 'text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)]'}`}
               >
                 EN
               </button>
               <button 
                 onClick={() => setLanguage('JP')}
-                className={`px-3 h-full rounded-sm flex items-center justify-center transition-colors ${language === 'JP' ? 'bg-[var(--active-btn-bg,var(--border-color))] text-[var(--active-text-color,var(--text-color-highlight))]' : 'text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)]'}`}
+                className={`px-3 h-full rounded-sm flex items-center justify-center transition-colors ${language === 'JP' ? 'bg-[var(--active-btn-subtle-bg,var(--active-btn-bg))] text-[var(--active-text-color,var(--text-color-highlight))]' : 'text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)]'}`}
               >
                 JP
               </button>
@@ -1255,7 +1255,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             <button 
               onClick={toggleFullscreen}
               className="hidden sm:flex items-center justify-center border border-[var(--border-color)] bg-[var(--bg-color-card)] hover:bg-[var(--border-color)] text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] w-[30px] h-[30px] rounded-sm transition-colors ml-1 shrink-0"
-              title={language === 'EN' ? 'FULLSCREEN' : 'フルスクリーン (FULLSCREEN)'}
+              title={language === 'EN' ? 'FULLSCREEN' : '全画面 (FULLSCREEN)'}
             >
               {isFullscreen ? <Shrink size={14} /> : <Scan size={14} />}
             </button>
@@ -1303,7 +1303,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             </div>
 
             <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mb-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">{language === 'EN' ? '02 ENGINE' : '02 エンジン (ENGINE)'}</div>
+              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">language === 'EN' ? '02 ENGINE' : '02 エンジン (ENGINE)'</div>
               <div className="flex flex-col gap-1">
                 {(['BALANCED', 'DEEP_RESEARCH', 'QUICK'] as EngineType[]).map((e) => (
                   <button 
@@ -1322,7 +1322,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             </div>
 
             <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mb-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">{language === 'EN' ? '03 FORMAT' : '03 形式 (FORMAT)'}</div>
+              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">language === 'EN' ? '03 FORMAT' : '03 形式 (FORMAT)'</div>
               <div className="flex flex-col gap-1">
                 {(['STANDARD', 'RAW_JSON', 'MINIMAL'] as OutputFormat[]).map((f) => (
                   <button 
@@ -1341,29 +1341,29 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             </div>
 
             {/* TTS PANEL - full controls in sidebar */}
-            <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mt-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px] flex items-center gap-1.5">
+            <div className="border border-[var(--border-color)] p-3.5 bg-[var(--bg-color-card)] rounded-sm mt-4 transition-colors duration-300">
+              <div className="text-[var(--text-color-dim)] font-bold mb-3.5 text-[11px] flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${ ttsIsPlaying ? 'bg-[var(--accent-color)] animate-pulse' : 'bg-[var(--border-color-highlight)]'}`}></span>
                 <span>{language === 'EN' ? '09 VOICE (TTS)' : '09 音声 (TTS)'}</span>
               </div>
 
               {/* Play / Stop */}
-              <div className="flex gap-1.5 mb-3">
+              <div className="flex gap-2 mb-4">
                 <button onClick={ttsPlayFromTop} disabled={!output || ttsIsPlaying} title={language === "EN" ? "Read from top" : "先頭から読み上げ"}
-                  className="flex-1 py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[11px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-highlight))] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+                  className="flex-1 py-1.5 px-2 text-center font-bold border transition-colors rounded-sm text-[11px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-highlight))] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1 cursor-pointer">
                   <span>▶</span><span>{language === 'EN' ? 'PLAY' : '再生'}</span>
                 </button>
                 <button onClick={ttsStop} disabled={!ttsIsPlaying} title={language === "EN" ? "Stop" : "停止"}
-                  className="flex-1 py-1 px-1 text-center font-bold border transition-colors rounded-sm text-[11px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-highlight))] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+                  className="flex-1 py-1.5 px-2 text-center font-bold border transition-colors rounded-sm text-[11px] bg-transparent border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-highlight))] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1 cursor-pointer">
                   <span>⏹</span><span>{language === 'EN' ? 'STOP' : '停止'}</span>
                 </button>
               </div>
 
               {/* Speed */}
-              <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">
+              <div className="mb-4">
+                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1.5 text-[11px]">
                   <span>{language === 'EN' ? 'SPEED' : '速度 (SPEED)'}</span>
-                  <span className="text-[var(--text-color-highlight)]">{ttsRate.toFixed(1)}x</span>
+                  <span className="text-[var(--text-color-highlight)] font-mono font-semibold">{ttsRate.toFixed(1)}x</span>
                 </div>
                 <input type="range" value={ttsRate} onChange={(e) => handleRateChange(Number(e.target.value))}
                   min={0.5} max={4.0} step={0.1}
@@ -1371,10 +1371,10 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               </div>
 
               {/* Volume */}
-              <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">
+              <div className="mb-4">
+                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1.5 text-[11px]">
                   <span>{language === 'EN' ? 'VOLUME' : '音量 (VOL)'}</span>
-                  <span className="text-[var(--text-color-highlight)]">{Math.round(ttsVolume * 100)}%</span>
+                  <span className="text-[var(--text-color-highlight)] font-mono font-semibold">{Math.round(ttsVolume * 100)}%</span>
                 </div>
                 <input type="range" value={ttsVolume} onChange={(e) => handleVolumeChange(Number(e.target.value))}
                   min={0.0} max={1.0} step={0.05}
@@ -1382,10 +1382,10 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               </div>
 
               {/* Pitch */}
-              <div className="mb-2">
-                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">
+              <div className="mb-4">
+                <div className="flex justify-between text-[var(--text-color-dim)] font-bold mb-1.5 text-[11px]">
                   <span>{language === 'EN' ? 'PITCH' : '音程 (PITCH)'}</span>
-                  <span className="text-[var(--text-color-highlight)]">{ttsPitch.toFixed(1)}</span>
+                  <span className="text-[var(--text-color-highlight)] font-mono font-semibold">{ttsPitch.toFixed(1)}</span>
                 </div>
                 <input type="range" value={ttsPitch} onChange={(e) => handlePitchChange(Number(e.target.value))}
                   min={0.5} max={2.0} step={0.1}
@@ -1393,10 +1393,10 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               </div>
 
               {/* Voice */}
-              <div>
-                <div className="text-[var(--text-color-dim)] font-bold mb-1 text-[11px]">{language === 'EN' ? 'VOICE' : 'ボイス (VOICE)'}</div>
+              <div className="mb-1">
+                <div className="text-[var(--text-color-dim)] font-bold mb-1.5 text-[11px]">language === 'EN' ? 'VOICE' : 'ボイス (VOICE)'</div>
                 <select value={ttsVoiceURI} onChange={(e) => handleVoiceChange(e.target.value)}
-                  className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-1.5 py-1 text-[var(--text-color-highlight)] text-[11px] outline-none focus:border-[var(--text-color-dim)] normal-case tracking-normal cursor-pointer">
+                  className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1.5 text-[var(--text-color-highlight)] text-[11px] outline-none focus:border-[var(--text-color-dim)] normal-case tracking-normal cursor-pointer">
                   {ttsVoices.map(v => (
                     <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
                   ))}
@@ -1404,11 +1404,11 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               </div>
 
               {/* Reset to defaults button */}
-              <div className="mt-3 pt-2.5 border-t border-[var(--border-color)]">
+              <div className="mt-4 pt-3 border-t border-[var(--border-color)]">
                 <button
                   onClick={handleResetVoiceProfiles}
                   title={language === 'EN' ? 'Reset all 4 voices to default (Ichiro 2.0x, Haruka 1.6x, Ayumi 2.0x, Sayaka 2.0x)' : '4つの音声を初期設定に戻す（一郎 2.0x, はるか 1.6x, あゆみ 2.0x, さやか 2.0x）'}
-                  className="w-full py-1.5 px-2 text-center font-bold border transition-colors rounded-sm text-[10px] bg-[var(--bg-color-base)] border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full py-2 px-2 text-center font-bold border transition-colors rounded-sm text-[10px] bg-[var(--bg-color-base)] border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--bg-color-panel)] hover:text-[var(--text-color-highlight)] flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw size={11} className={`shrink-0 ${resetStatus ? 'text-[var(--accent-color)] animate-spin' : ''}`} />
                   <span>
@@ -1420,7 +1420,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
               </div>
 
               {output && (
-                <div className="mt-2 text-[8px] text-[var(--text-color-dim)] text-center leading-tight">
+                <div className="mt-3 text-[8px] text-[var(--text-color-dim)] text-center leading-tight">
                   {language === 'EN' ? 'Click paragraph to play' : '※段落をクリックで'}
                   <br/>{language === 'EN' ? '' : 'その箇所から読み上げ'}
                 </div>
@@ -1535,7 +1535,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
 
                  {/* Line Height */}
                  <div className="h-[30px] flex items-center gap-1.5 border border-[var(--border-color)] bg-[var(--bg-color-card)] px-2.5 rounded-sm" title={language === "EN" ? "Line Height" : "行間"}>
-                    <ArrowDownUp size={13} className="shrink-0 text-[var(--text-color-dim)]" />
+                    <ArrowDownUp size={13} className="shrink-0 text-[var(--text-color-base)]" />
                     <input 
                       type="range" 
                       value={lineHeight}
@@ -1549,7 +1549,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
 
                  {/* Font Size */}
                  <div className="h-[30px] flex items-center gap-1.5 border border-[var(--border-color)] bg-[var(--bg-color-card)] px-2.5 rounded-sm" title={language === 'EN' ? 'Font Size' : '文字サイズ'}>
-                    <Type size={13} className="shrink-0 text-[var(--text-color-dim)]" />
+                    <Type size={13} className="shrink-0 text-[var(--text-color-base)]" />
                     <input 
                       type="range" 
                       value={fontSizeRem}
@@ -1678,13 +1678,13 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                         onClick={() => { setEditContent(output); setActiveTab('SEARCH_BUFFER'); }}
                         className="text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] transition-colors px-2 sm:px-4 py-2 font-bold text-[11px] sm:text-xs"
                       >
-                        {language === 'EN' ? 'CANCEL' : 'キャンセル (CANCEL)'}
+                        language === 'EN' ? 'CANCEL' : 'キャンセル (CANCEL)'
                       </button>
                       <button 
                         onClick={() => { setOutput(editContent); setActiveTab('SEARCH_BUFFER'); }}
                         className="bg-[var(--accent-color)] text-[#000000] px-4 sm:px-6 py-2 rounded-sm font-bold transition-all hover:brightness-110 text-[11px] sm:text-xs tracking-wider uppercase shadow-lg border border-transparent hover:border-[#ffffff55]"
                       >
-                        {language === 'EN' ? 'SAVE EDITS' : '編集内容の保存 (SAVE)'}
+                        language === 'EN' ? 'SAVE EDITS' : '編集内容の保存 (SAVE)'
                       </button>
                     </div>
                  </div>
@@ -1744,7 +1744,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                      onClick={() => setProvider(p)}
                      className={`flex-1 py-1 text-center font-bold border transition-colors rounded-sm text-[10px] ${
                        provider === p
-                         ? 'bg-[var(--active-btn-bg,var(--border-color))] border-[var(--border-color-highlight)] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm'
+                         ? 'bg-[var(--active-btn-subtle-bg,var(--active-btn-bg))] border-[var(--border-color-highlight)] text-[var(--active-text-color,var(--text-color-highlight))] shadow-sm'
                          : 'bg-[var(--bg-color-card)] border-[var(--border-color)] text-[var(--text-color-dim)] hover:bg-[var(--border-color)] hover:text-[var(--active-text-color,var(--text-color-base))]'
                      }`}
                    >
@@ -1780,7 +1780,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
              </div>
 
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
-               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px]">{language === 'EN' ? '06 THEMES' : '06 テーマ (THEMES)'}</div>
+               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px]">language === 'EN' ? '06 THEMES' : '06 テーマ (THEMES)'</div>
                <div className="grid grid-cols-2 gap-1.5">
                  {(['DARK', 'BLACK', 'MID', 'RED', 'LIGHT', 'PAPER'] as Theme[]).map((t) => (
                    <button 
@@ -1849,14 +1849,14 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                      >
                        <button
                          onClick={() => loadHistory(item)}
-                         className="flex-1 p-3 text-left overflow-hidden"
+                         className="flex-1 p-2.5 sm:p-3 text-left overflow-hidden cursor-pointer"
                        >
-                         <div className="text-[var(--accent-color)] mb-1 text-[8px]">{item.timestamp}</div>
-                         <div className="text-[var(--text-color-base)] group-hover:text-[var(--text-color-highlight)] truncate text-xs normal-case font-sans">{item.keyword}</div>
+                         <div className="text-[var(--accent-color)] mb-1 text-[9px] font-mono font-semibold">{item.timestamp}</div>
+                         <div className="text-[var(--text-color-base)] group-hover:text-[var(--text-color-highlight)] truncate text-sm font-bold tracking-tight normal-case">{item.keyword}</div>
                        </button>
                        <button
                          onClick={(e) => { e.stopPropagation(); setHistory(prev => prev.filter(h => h.id !== item.id)); }}
-                         className="px-3 text-[var(--text-color-dim)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center border-l border-transparent group-hover:border-[var(--border-color)]"
+                         className="px-3 text-[var(--text-color-dim)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center border-l border-transparent group-hover:border-[var(--border-color)] cursor-pointer"
                          title={language === 'EN' ? "Delete" : "削除"}
                        >
                          <X size={14} />
@@ -1865,7 +1865,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                    ))
                  )}
                  {history.length > 0 && (
-                    <button onClick={() => setHistory([])} className="mt-2 text-xs text-[var(--text-color-dim)] hover:text-[var(--text-color-base)] p-2 border border-transparent hover:border-[var(--border-color)] rounded-sm transition-colors">{language === 'EN' ? 'CLEAR HISTORY' : '履歴をクリア'}</button>
+                    <button onClick={() => setHistory([])} className="mt-2 text-xs text-[var(--text-color-dim)] hover:text-[var(--text-color-base)] p-2 border border-transparent hover:border-[var(--border-color)] rounded-sm transition-colors">language === 'EN' ? 'CLEAR HISTORY' : '履歴をクリア'</button>
                  )}
                </div>
              </div>
@@ -1874,7 +1874,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px] flex justify-between items-center">
                  <span>{language === 'EN' ? '09 DRIVE (SAVE LOCATION)' : '09 DRIVE 保存先'}</span>
                  {driveDirName !== '未設定' && (
-                   <button onClick={handleResetDrive} className="text-[var(--accent-color)] hover:text-[#ff4444] hover:underline cursor-pointer">{language === 'EN' ? 'CHANGE (CLEAR)' : '変更(CLEAR)'}</button>
+                   <button onClick={handleResetDrive} className="text-[var(--accent-color)] hover:text-[#ff4444] hover:underline cursor-pointer">language === 'EN' ? 'CHANGE (CLEAR)' : '変更(CLEAR)'</button>
                  )}
                </div>
                <div className="text-[11px] text-[var(--text-color-base)] truncate bg-[var(--bg-color-base)] border border-[var(--border-color)] p-2 rounded-sm text-center">
@@ -1887,13 +1887,13 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
       </div>
 
       {/* FOOTER */}
-      <footer className="h-10 border-t border-[var(--border-color)] bg-[var(--bg-color-panel)] flex items-stretch shrink-0 text-[var(--text-color-dim)] font-bold divide-x divide-[var(--border-color)] transition-colors duration-300 overflow-x-auto whitespace-nowrap relative z-20">
-         <button onClick={handleCopy} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{copyStatus === 'COPIED!' ? 'COPIED!' : (language === 'EN' ? 'COPY' : '結果をコピー (COPY)')}</span></button>
-         <button onClick={() => setOutput('')} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{language === 'EN' ? 'CLEAR' : 'クリア (CLEAR)'}</span></button>
-         <button onClick={() => importFileRef.current?.click()} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{importStatus === 'IMPORTED!' ? 'IMPORTED!' : importStatus === 'ERROR!' ? 'ERROR!' : (language === 'EN' ? 'IMPORT' : 'インポート (IMPORT)')}</span></button>
+      <footer className="h-10 border-t border-[var(--border-color-highlight)] bg-[var(--bg-color-panel)] flex items-stretch shrink-0 text-[var(--text-color-base)] font-bold divide-x divide-[var(--border-color-highlight)] transition-colors duration-300 overflow-x-auto whitespace-nowrap relative z-20">
+         <button onClick={handleCopy} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center cursor-pointer"><span className="mt-1">{copyStatus === 'COPIED!' ? 'COPIED!' : (language === 'EN' ? 'COPY' : '結果をコピー (COPY)')}</span></button>
+         <button onClick={() => setOutput('')} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center cursor-pointer"><span className="mt-1">language === 'EN' ? 'CLEAR' : 'クリア (CLEAR)'</span></button>
+         <button onClick={() => importFileRef.current?.click()} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center cursor-pointer"><span className="mt-1">{importStatus === 'IMPORTED!' ? 'IMPORTED!' : importStatus === 'ERROR!' ? 'ERROR!' : (language === 'EN' ? 'IMPORT' : 'インポート (IMPORT)')}</span></button>
          <input type="file" ref={importFileRef} accept=".json,.txt" className="hidden" onChange={handleImport} />
-         <button onClick={handleExportTxt} className="px-4 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{saveTxtStatus}</span></button>
-         <button onClick={handleExportJson} className="px-4 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center"><span className="mt-1">{saveJsonStatus}</span></button>
+         <button onClick={handleExportTxt} className="px-4 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center cursor-pointer"><span className="mt-1">{saveTxtStatus}</span></button>
+         <button onClick={handleExportJson} className="px-4 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center cursor-pointer"><span className="mt-1">{saveJsonStatus}</span></button>
       </footer>
     </div>
   );
