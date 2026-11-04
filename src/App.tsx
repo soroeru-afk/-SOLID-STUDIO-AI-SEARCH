@@ -928,8 +928,9 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             response = null;
           }
 
-          // Fallback to local Vite dev proxy only if direct API failed with network/CORS error
-          if (!response || !response.ok) {
+          // Fallback to local Vite dev proxy only if running locally and direct API failed
+          const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+          if (isLocalhost && (!response || !response.ok)) {
             try {
               const proxyRes = await fetch('/api/groq/chat/completions', {
                 method: 'POST',
@@ -1303,7 +1304,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             </div>
 
             <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mb-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">language === 'EN' ? '02 ENGINE' : '02 エンジン (ENGINE)'</div>
+              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">{language === 'EN' ? '02 ENGINE' : '02 エンジン (ENGINE)'}</div>
               <div className="flex flex-col gap-1">
                 {(['BALANCED', 'DEEP_RESEARCH', 'QUICK'] as EngineType[]).map((e) => (
                   <button 
@@ -1322,7 +1323,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
             </div>
 
             <div className="border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm mb-4 transition-colors duration-300">
-              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">language === 'EN' ? '03 FORMAT' : '03 形式 (FORMAT)'</div>
+              <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px]">{language === 'EN' ? '03 FORMAT' : '03 形式 (FORMAT)'}</div>
               <div className="flex flex-col gap-1">
                 {(['STANDARD', 'RAW_JSON', 'MINIMAL'] as OutputFormat[]).map((f) => (
                   <button 
@@ -1394,7 +1395,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
 
               {/* Voice */}
               <div className="mb-1">
-                <div className="text-[var(--text-color-dim)] font-bold mb-1.5 text-[11px]">language === 'EN' ? 'VOICE' : 'ボイス (VOICE)'</div>
+                <div className="text-[var(--text-color-dim)] font-bold mb-1.5 text-[11px]">{language === 'EN' ? 'VOICE' : 'ボイス (VOICE)'}</div>
                 <select value={ttsVoiceURI} onChange={(e) => handleVoiceChange(e.target.value)}
                   className="w-full bg-[var(--bg-color-base)] border border-[var(--border-color)] rounded-sm px-2 py-1.5 text-[var(--text-color-highlight)] text-[11px] outline-none focus:border-[var(--text-color-dim)] normal-case tracking-normal cursor-pointer">
                   {ttsVoices.map(v => (
@@ -1678,13 +1679,13 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                         onClick={() => { setEditContent(output); setActiveTab('SEARCH_BUFFER'); }}
                         className="text-[var(--text-color-dim)] hover:text-[var(--text-color-highlight)] transition-colors px-2 sm:px-4 py-2 font-bold text-[11px] sm:text-xs"
                       >
-                        language === 'EN' ? 'CANCEL' : 'キャンセル (CANCEL)'
+                        {language === 'EN' ? 'CANCEL' : 'キャンセル (CANCEL)'}
                       </button>
                       <button 
                         onClick={() => { setOutput(editContent); setActiveTab('SEARCH_BUFFER'); }}
                         className="bg-[var(--accent-color)] text-[#000000] px-4 sm:px-6 py-2 rounded-sm font-bold transition-all hover:brightness-110 text-[11px] sm:text-xs tracking-wider uppercase shadow-lg border border-transparent hover:border-[#ffffff55]"
                       >
-                        language === 'EN' ? 'SAVE EDITS' : '編集内容の保存 (SAVE)'
+                        {language === 'EN' ? 'SAVE EDITS' : '編集内容の保存 (SAVE)'}
                       </button>
                     </div>
                  </div>
@@ -1780,7 +1781,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
              </div>
 
              <div className="mb-4 border border-[var(--border-color)] p-2.5 bg-[var(--bg-color-card)] rounded-sm transition-colors duration-300">
-               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px]">language === 'EN' ? '06 THEMES' : '06 テーマ (THEMES)'</div>
+               <div className="text-[var(--text-color-dim)] font-bold mb-3 text-[11px]">{language === 'EN' ? '06 THEMES' : '06 テーマ (THEMES)'}</div>
                <div className="grid grid-cols-2 gap-1.5">
                  {(['DARK', 'BLACK', 'MID', 'RED', 'LIGHT', 'PAPER'] as Theme[]).map((t) => (
                    <button 
@@ -1865,7 +1866,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                    ))
                  )}
                  {history.length > 0 && (
-                    <button onClick={() => setHistory([])} className="mt-2 text-xs text-[var(--text-color-dim)] hover:text-[var(--text-color-base)] p-2 border border-transparent hover:border-[var(--border-color)] rounded-sm transition-colors">language === 'EN' ? 'CLEAR HISTORY' : '履歴をクリア'</button>
+                    <button onClick={() => setHistory([])} className="mt-2 text-xs text-[var(--text-color-dim)] hover:text-[var(--text-color-base)] p-2 border border-transparent hover:border-[var(--border-color)] rounded-sm transition-colors">{language === 'EN' ? 'CLEAR HISTORY' : '履歴をクリア'}</button>
                  )}
                </div>
              </div>
@@ -1874,7 +1875,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
                <div className="text-[var(--text-color-dim)] font-bold mb-2 text-[11px] flex justify-between items-center">
                  <span>{language === 'EN' ? '09 DRIVE (SAVE LOCATION)' : '09 DRIVE 保存先'}</span>
                  {driveDirName !== '未設定' && (
-                   <button onClick={handleResetDrive} className="text-[var(--accent-color)] hover:text-[#ff4444] hover:underline cursor-pointer">language === 'EN' ? 'CHANGE (CLEAR)' : '変更(CLEAR)'</button>
+                   <button onClick={handleResetDrive} className="text-[var(--accent-color)] hover:text-[#ff4444] hover:underline cursor-pointer">{language === 'EN' ? 'CHANGE (CLEAR)' : '変更(CLEAR)'}</button>
                  )}
                </div>
                <div className="text-[11px] text-[var(--text-color-base)] truncate bg-[var(--bg-color-base)] border border-[var(--border-color)] p-2 rounded-sm text-center">
@@ -1889,7 +1890,7 @@ ${outputFormat === 'RAW_JSON' ? `# Output Rule (RAW_JSON Mode)
       {/* FOOTER */}
       <footer className="h-10 border-t border-[var(--border-color-highlight)] bg-[var(--bg-color-panel)] flex items-stretch shrink-0 text-[var(--text-color-base)] font-bold divide-x divide-[var(--border-color-highlight)] transition-colors duration-300 overflow-x-auto whitespace-nowrap relative z-20">
          <button onClick={handleCopy} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center cursor-pointer"><span className="mt-1">{copyStatus === 'COPIED!' ? 'COPIED!' : (language === 'EN' ? 'COPY' : '結果をコピー (COPY)')}</span></button>
-         <button onClick={() => setOutput('')} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center cursor-pointer"><span className="mt-1">language === 'EN' ? 'CLEAR' : 'クリア (CLEAR)'</span></button>
+         <button onClick={() => setOutput('')} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center cursor-pointer"><span className="mt-1">{language === 'EN' ? 'CLEAR' : 'クリア (CLEAR)'}</span></button>
          <button onClick={() => importFileRef.current?.click()} className="px-6 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center cursor-pointer"><span className="mt-1">{importStatus === 'IMPORTED!' ? 'IMPORTED!' : importStatus === 'ERROR!' ? 'ERROR!' : (language === 'EN' ? 'IMPORT' : 'インポート (IMPORT)')}</span></button>
          <input type="file" ref={importFileRef} accept=".json,.txt" className="hidden" onChange={handleImport} />
          <button onClick={handleExportTxt} className="px-4 flex-1 h-full hover:bg-[var(--bg-color-card)] hover:text-[var(--text-color-highlight)] transition-colors text-[11px] flex items-center justify-center cursor-pointer"><span className="mt-1">{saveTxtStatus}</span></button>
